@@ -1,9 +1,16 @@
 using Microsoft.EntityFrameworkCore;
+using Shipment.Entities;
 
 namespace Shipment.Database;
 
 
 public sealed class AppDbContext(DbContextOptions options) : DbContext(options)
 {
-    
+    public required DbSet<Users> Users { get; set; }
+    public required DbSet<ShipmentDetails> Shipments { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AppDbContext).Assembly);
+    }
 }

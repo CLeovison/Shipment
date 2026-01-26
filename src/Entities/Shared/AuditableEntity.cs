@@ -2,6 +2,6 @@ namespace Shipment.Entities.Shared;
 
 public abstract class AuditableEntity
 {
-    public DateTime CreatedBy { get; set; }
+    public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
