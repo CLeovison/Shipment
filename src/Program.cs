@@ -9,7 +9,11 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 {
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
 });
+
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
+
+builder.Services.AddApplication();
+
 
 var app = builder.Build();
 

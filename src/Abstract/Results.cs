@@ -12,7 +12,7 @@ public sealed record Error(string Code, string Description)
 }
 public class Result
 {
-    protected Result(bool isSuccess, Error error)
+    public Result(bool isSuccess, Error error)
     {
         if (isSuccess && error != Error.None || !isSuccess && error == Error.None)
         {
@@ -34,20 +34,20 @@ public class Result
     public static Result<T> Success<T>(T value) => new(value, true, Error.None);
     public static Result<T> Failure<T>(Error error) => new(default, false, error);
     public static Result<T> Create<T>(T? value) => value is not null ? Success(value) : Failure<T>(Error.NullValue);
-     public override string ToString() =>
-        IsSuccess ? "Success" : $"Failure: {Error.Code} - {Error.Description}";
+    public override string ToString() =>
+       IsSuccess ? "Success" : $"Failure: {Error.Code} - {Error.Description}";
 
 }
 
 public class Result<T> : Result
 {
     private readonly T? _value;
-    protected internal Result(T? value, bool isSuccess, Error error) : base(isSuccess, error) => _value = value;
+    public Result(T? value, bool isSuccess, Error error) : base(isSuccess, error) => _value = value;
 
     [NotNull]
-    public T Value => _value! ?? throw new InvalidOperationException("Result has no value");
+    public T Value => IsSuccess ? _value! : throw new InvalidOperationException("Result has no value");
 
     public static implicit operator Result<T>(T? value) => Create(value);
-     public override string ToString() => IsSuccess ? $"Success: {Value}" : $"Failure: {Error.Code} - {Error.Description}";
+    public override string ToString() => IsSuccess ? $"Success: {Value}" : $"Failure: {Error.Code} - {Error.Description}";
 
 }
