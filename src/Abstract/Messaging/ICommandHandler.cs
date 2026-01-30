@@ -1,3 +1,5 @@
+using Shipment.Abstract.Results;
+
 namespace Shipment.Abstract.Messaging;
 
 public interface ICommandHandler<in TCommand> where TCommand : ICommand

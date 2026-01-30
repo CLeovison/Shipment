@@ -1,3 +1,5 @@
+using Shipment.Abstract.Results;
+
 namespace Shipment.Abstract.Messaging;
 
 public interface IQueryHandler<in TQuery, TResponse> where TQuery : IQuery<TResponse>
