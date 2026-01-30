@@ -1,4 +1,3 @@
-
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Abstract;
@@ -6,7 +5,7 @@ using Shipment.Abstract.Results;
 using Shipment.Abstract.Results.Errors;
 using Shipment.Database;
 using Shipment.Entities;
-using Wait.Features.User.CreateUsers;
+using Shipment.Extensions;
 
 namespace Shipment.Features.User.CreateUsers;
 
@@ -46,10 +45,9 @@ public class CreateUserEndpoint : IEndpoint
     public void Endpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/v1/users/create", async (
-            CreateUserHandler handler,
             [FromBody] CreateUserRequest request,
+            CreateUserHandler handler,
             CancellationToken ct) =>
-
         {
             try
             {
@@ -60,15 +58,13 @@ public class CreateUserEndpoint : IEndpoint
                 {
                     return create.Error.Code switch
                     {
-                        "Error.AlreadyExist" => Results.Conflict(create.Error.Description),
+                        "Error.AlreadyExists" => Results.Conflict(create.Error.Description),
                         "Error.NullValue" => Results.BadRequest(create.Error.Description),
                         _ => Results.BadRequest(create.Error.Description)
                     };
                 }
 
-
                 var response = create.Value.ToCreateUserResponse();
-
                 return Results.Created($"/api/v1/users/{response.Username}", response);
             }
             catch (Exception)
@@ -78,6 +74,7 @@ public class CreateUserEndpoint : IEndpoint
                     statusCode: StatusCodes.Status500InternalServerError
                 );
             }
-        });
+        })
+        .WithValidation<CreateUserRequest>();
     }
 }

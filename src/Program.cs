@@ -1,4 +1,5 @@
 using System.Reflection;
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Database;
 using Shipment.Extensions;
@@ -12,6 +13,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 builder.Services.AddScoped<CreateUserHandler>();
+
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+
 var app = builder.Build();
 
 app.Endpoint();
