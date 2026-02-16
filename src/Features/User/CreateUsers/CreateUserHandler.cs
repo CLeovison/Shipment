@@ -5,7 +5,7 @@ using Shipment.Abstract.Results;
 using Shipment.Abstract.Results.Errors;
 using Shipment.Database;
 using Shipment.Entities;
-using Shipment.Extension;
+using Shipment.Extensions;
 
 namespace Shipment.Features.User.CreateUsers;
 

@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Shipment.Abstract;
 using Shipment.Abstract.Results;
 using Shipment.Abstract.Results.Errors;

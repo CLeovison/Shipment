@@ -1,24 +1,41 @@
 using Microsoft.EntityFrameworkCore;
-using Shipment.Abstract.Results;
+using Shipment.Abstract;
 using Shipment.Database;
-using Shipment.Entities;
+using Shipment.Entities.Shared;
 
 namespace Shipment.Features.User.GetAllUsers;
 
 internal sealed class GetAllUserHandler(AppDbContext dbContext)
 {
-
-    public async Task<Result<List<Users>>> Handler(int pageNumber, int pageSize, string? searchTerm, CancellationToken ct)
+    public async Task<PaginationResponse<GetAllUserResponse>> GetAllUserAsync(
+        int pageNumber,
+        int pageSize,
+        string? searchTerm,
+        UserFilter filter,
+        CancellationToken ct)
     {
         var query = dbContext.Users.AsQueryable();
 
-        if (!string.IsNullOrWhiteSpace(searchTerm))
+        var lowerCase = searchTerm?.Trim().ToLower();
+
+        if (!string.IsNullOrWhiteSpace(lowerCase))
         {
             query = query.Where(x =>
-                x.Username.Contains(searchTerm) ||
-                x.FirstName.Contains(searchTerm) ||
-                x.LastName.Contains(searchTerm));
+                x.Username.Contains(lowerCase) ||
+                x.FirstName.Contains(lowerCase) ||
+                x.LastName.Contains(lowerCase));
         }
+        if (!string.IsNullOrWhiteSpace(filter.FirstName))
+        {
+            query = query.Where(x => x.FirstName.Contains(filter.FirstName));
+        }
+
+        if (!string.IsNullOrWhiteSpace(filter.Username))
+        {
+            query = query.Where(x => x.Username.Contains(filter.Username));
+        }
+
+        var totalCount = await query.CountAsync(ct);
 
         var users = await query
         .OrderBy(x => x.Username)
@@ -27,6 +44,38 @@ internal sealed class GetAllUserHandler(AppDbContext dbContext)
         .Take(pageSize)
         .ToListAsync(ct); ;
 
-        return Result.Success(users);
+        var userRequests = users.Select(u => new GetAllUserResponse(
+                u.FirstName,
+                u.LastName,
+                u.Username,
+                u.Birthday
+        )).ToList();
+
+        return new PaginationResponse<GetAllUserResponse>(userRequests, pageSize, pageNumber, totalCount);
+    }
+}
+
+
+public sealed class GetAllUserEndpoint : IEndpoint
+{
+    public void Endpoint(IEndpointRouteBuilder app)
+    {
+        app.MapGet("/api/v1/users", async (
+            GetAllUserHandler handler,
+            [AsParameters] UserFilter filter,
+            CancellationToken ct,
+            int pageNumber = 1,
+            int pageSize = 10,
+            string? searchTerm = null) =>
+        {
+            var users = await handler.GetAllUserAsync(
+                           pageNumber,
+                           pageSize,
+                           searchTerm,
+                           filter,
+                           ct);
+
+            return Results.Ok(users);
+        });
     }
 }

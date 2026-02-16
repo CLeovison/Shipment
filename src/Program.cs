@@ -5,6 +5,7 @@ using Shipment.Database;
 using Shipment.Extensions;
 using Shipment.Features.User.CreateUsers;
 using Shipment.Features.User.DeleteUsers;
+using Shipment.Features.User.GetAllUsers;
 using Shipment.Features.User.GetUserById;
 using Shipment.Features.User.UpdateUsers;
 
@@ -19,6 +20,7 @@ builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
 builder.Services.AddScoped<CreateUserHandler>();
 builder.Services.AddScoped<DeleteUserHandler>();
+builder.Services.AddScoped<GetAllUserHandler>();
 builder.Services.AddScoped<GetUserByIdHandler>();
 builder.Services.AddScoped<UpdateUserHandler>();
 
