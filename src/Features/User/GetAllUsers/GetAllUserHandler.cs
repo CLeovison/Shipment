@@ -42,16 +42,16 @@ internal sealed class GetAllUserHandler(AppDbContext dbContext)
         .ThenBy(x => x.FirstName)
         .Skip((pageNumber - 1) * pageSize)
         .Take(pageSize)
-        .ToListAsync(ct); ;
-
-        var userRequests = users.Select(u => new GetAllUserResponse(
+        .Select(u => new GetAllUserResponse(
                 u.FirstName,
                 u.LastName,
                 u.Username,
                 u.Birthday
-        )).ToList();
+        ))
+        .ToListAsync(ct); ;
 
-        return new PaginationResponse<GetAllUserResponse>(userRequests, pageSize, pageNumber, totalCount);
+      
+        return new PaginationResponse<GetAllUserResponse>(users, pageSize, pageNumber, totalCount);
     }
 }
 

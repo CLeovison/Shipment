@@ -3,6 +3,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Database;
 using Shipment.Extensions;
+using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.User.CreateUsers;
 using Shipment.Features.User.DeleteUsers;
 using Shipment.Features.User.GetAllUsers;
@@ -24,6 +25,8 @@ builder.Services.AddScoped<GetAllUserHandler>();
 builder.Services.AddScoped<GetUserByIdHandler>();
 builder.Services.AddScoped<UpdateUserHandler>();
 
+
+builder.Services.AddScoped<CreateShipmentHandler>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 

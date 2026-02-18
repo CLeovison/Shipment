@@ -5,6 +5,15 @@ using Shipment.Database;
 
 namespace Shipment.Features.User.UpdateUsers;
 
+public record class UpdateUserRequest(
+    int UserId,
+    string FirstName, 
+    string LastName,
+    string Username, 
+    string Password,
+    DateTime Birthday,
+    DateTime UpdateAt);
+
 internal sealed class UpdateUserHandler(AppDbContext dbContext)
 {
     public async Task<Result<UpdateUserRequest>> UpdateUserAsync(UpdateUserRequest request, CancellationToken ct)
@@ -31,14 +40,14 @@ public sealed class UpdateUserEndpoint : IEndpoint
     {
         app.MapPut("/api/v1/users/{id}", async (int id, UpdateUserRequest request, UpdateUserHandler handler, CancellationToken ct) =>
         {
-         
+
             request = request with { UserId = id };
 
             var result = await handler.UpdateUserAsync(request, ct);
 
             if (result.IsSuccess)
             {
-                return Results.Ok(result.Value); 
+                return Results.Ok(result.Value);
             }
 
             // You can customize error handling here
