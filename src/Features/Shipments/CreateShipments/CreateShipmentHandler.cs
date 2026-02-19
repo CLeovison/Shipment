@@ -11,27 +11,42 @@ namespace Shipment.Features.Shipments.CreateShipments;
 
 internal sealed class CreateShipmentHandler(AppDbContext dbContext)
 {
-    public async Task<Result<ShipmentDetails>> CreateShipmentAsync(
+    public async Task<Result<CreateShipmentResponse>> CreateShipmentAsync(
         ShipmentDetails shipment,
         CancellationToken ct)
     {
-
         var duplicateExists = await dbContext.Shipments
             .AnyAsync(x => x.PurchaseOrderNumber == shipment.PurchaseOrderNumber, ct);
 
         if (duplicateExists)
         {
-            return Result.Failure<ShipmentDetails>(
+            return Result.Failure<CreateShipmentResponse>(
                 Error.AlreadyExists(nameof(Shipment)));
+        }
+
+        var userExists = await dbContext.Users
+            .AnyAsync(u => u.UserId == shipment.UserId, ct);
+
+        if (!userExists)
+        {
+            return Result.Failure<CreateShipmentResponse>(
+                Error.NotFound);
         }
 
         dbContext.Shipments.Add(shipment);
         await dbContext.SaveChangesAsync(ct);
 
-        return Result.Success(shipment);
-    }
 
+        var userFirstName = await dbContext.Users
+            .Where(u => u.UserId == shipment.UserId)
+            .Select(u => u.FirstName)
+            .FirstAsync(ct);
+
+        var response = shipment.ToResponse(userFirstName);
+        return Result.Success(response);
+    }
 }
+
 
 public sealed class CreateShipmentEndpoint : IEndpoint
 {
@@ -42,8 +57,8 @@ public sealed class CreateShipmentEndpoint : IEndpoint
             CreateShipmentHandler handler,
             CancellationToken ct) =>
         {
-            var shipmentRequest = request.ToRequest();
-            var result = await handler.CreateShipmentAsync(shipmentRequest, ct);
+            var shipmentEntity = request.ToRequest();
+            var result = await handler.CreateShipmentAsync(shipmentEntity, ct);
 
             if (!result.IsSuccess)
             {
@@ -55,10 +70,9 @@ public sealed class CreateShipmentEndpoint : IEndpoint
                 };
             }
 
-            var response = result.Value.ToResponse();
             return Results.Created(
-                $"/api/shipments/{response.PurchaseOrderNumber}",
-                response);
+                $"/api/shipments/{result.Value.PurchaseOrderNumber}",
+                result.Value);
         })
         .WithValidation<CreateShipmentRequest>();
     }

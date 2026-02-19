@@ -26,7 +26,6 @@ builder.Services.AddScoped<GetAllUserHandler>();
 builder.Services.AddScoped<GetUserByIdHandler>();
 builder.Services.AddScoped<UpdateUserHandler>();
 
-
 builder.Services.AddScoped<CreateShipmentHandler>();
 builder.Services.AddScoped<GetAllShipmentHandler>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();

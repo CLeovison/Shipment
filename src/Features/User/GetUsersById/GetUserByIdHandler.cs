@@ -13,8 +13,7 @@ internal sealed class GetUserByIdHandler(AppDbContext dbContext)
     {
         try
         {
-            var user = await dbContext.Users
-                .SingleOrDefaultAsync(u => u.UserId == id, ct);
+            var user = await dbContext.Users.FindAsync(id, ct);
 
             if (user is null)
             {

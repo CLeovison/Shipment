@@ -5,7 +5,7 @@ using Shipment.Entities.Shared;
 
 namespace Shipment.Features.Shipments.GetAllShipments;
 
-public record class GetAllShipmentResponse(string PurchaseOrderNumber, string Vendor, DateTime TimeOfArrival);
+public record class GetAllShipmentResponse(string PurchaseOrderNumber, string Vendor, DateTime TimeOfArrival, string CreatedBy);
 
 internal sealed class GetAllShipmentHandler(AppDbContext dbContext)
 {
@@ -49,10 +49,11 @@ internal sealed class GetAllShipmentHandler(AppDbContext dbContext)
         .Select(s => new GetAllShipmentResponse(
             s.PurchaseOrderNumber,
             s.Vendor,
-            s.TimeOfArrival
+            s.TimeOfArrival,
+            s.User.FirstName
+
         ))
         .ToListAsync();
-
 
         return new PaginationResponse<GetAllShipmentResponse>(shipment, pageSize, pageNumber, totalCount);
     }

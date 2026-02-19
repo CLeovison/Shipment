@@ -9,4 +9,6 @@ public class ShipmentDetails : AuditableEntity
     public string Vendor { get; set; } = string.Empty;
     public DateTime TimeOfArrival { get; set; }
     public int UserId { get; set; }
+    public Users User { get; set; } = null!;
+
 }
