@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Shipment.Database;
 using Shipment.Extensions;
 using Shipment.Features.Shipments.CreateShipments;
+using Shipment.Features.Shipments.GetAllShipments;
 using Shipment.Features.User.CreateUsers;
 using Shipment.Features.User.DeleteUsers;
 using Shipment.Features.User.GetAllUsers;
@@ -27,6 +28,7 @@ builder.Services.AddScoped<UpdateUserHandler>();
 
 
 builder.Services.AddScoped<CreateShipmentHandler>();
+builder.Services.AddScoped<GetAllShipmentHandler>();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 

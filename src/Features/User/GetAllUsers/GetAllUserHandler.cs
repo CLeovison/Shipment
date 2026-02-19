@@ -40,8 +40,8 @@ internal sealed class GetAllUserHandler(AppDbContext dbContext)
         var users = await query
         .OrderBy(x => x.Username)
         .ThenBy(x => x.FirstName)
-        .Skip((pageNumber - 1) * pageSize)
-        .Take(pageSize)
+        .Skip((pageSize - 1) * pageNumber)
+        .Take(pageNumber)
         .Select(u => new GetAllUserResponse(
                 u.FirstName,
                 u.LastName,
@@ -50,7 +50,7 @@ internal sealed class GetAllUserHandler(AppDbContext dbContext)
         ))
         .ToListAsync(ct); ;
 
-      
+
         return new PaginationResponse<GetAllUserResponse>(users, pageSize, pageNumber, totalCount);
     }
 }
@@ -69,11 +69,11 @@ public sealed class GetAllUserEndpoint : IEndpoint
             string? searchTerm = null) =>
         {
             var users = await handler.GetAllUserAsync(
-                           pageNumber,
-                           pageSize,
-                           searchTerm,
-                           filter,
-                           ct);
+                            pageSize,
+                            pageNumber,
+                            searchTerm,
+                            filter,
+                            ct);
 
             return Results.Ok(users);
         });

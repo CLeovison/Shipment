@@ -23,11 +23,11 @@ public sealed class ShipmentConfiguration : IEntityTypeConfiguration<ShipmentDet
                .HasColumnType("date");
 
         builder.Property(x => x.CreatedAt)
-               .HasDefaultValueSql("CURRENT_TIMESTAMP")
+               .HasDefaultValueSql("CURRENT_DATE")
                .ValueGeneratedOnAdd();
 
         builder.Property(x => x.UpdatedAt)
-               .HasDefaultValueSql("CURRENT_TIMESTAMP")
+               .HasDefaultValueSql("CURRENT_DATE")
                .ValueGeneratedOnUpdate();
     }
 }

@@ -6,10 +6,11 @@ using Shipment.Entities.Shared;
 namespace Shipment.Features.Shipments.GetAllShipments;
 
 public record class GetAllShipmentResponse(string PurchaseOrderNumber, string Vendor, DateTime TimeOfArrival);
+
 internal sealed class GetAllShipmentHandler(AppDbContext dbContext)
 {
     public async Task<PaginationResponse<GetAllShipmentResponse>> GetAllShipmentAsync(
-        int pageSize,
+            int pageSize,
          int pageNumber,
          string? searchTerm,
          ShipmentFilter filter,
@@ -21,7 +22,10 @@ internal sealed class GetAllShipmentHandler(AppDbContext dbContext)
 
         if (!string.IsNullOrWhiteSpace(lowerCase))
         {
-            query = query.Where(x => x.PurchaseOrderNumber.Contains(lowerCase) || x.TimeOfArrival.ToString().Contains(lowerCase));
+            if (DateTime.TryParse(lowerCase, out DateTime parsedSearchDate))
+            {
+                query = query.Where(x => x.PurchaseOrderNumber.Contains(lowerCase) || x.TimeOfArrival.Date == parsedSearchDate);
+            }
         }
 
         if (!string.IsNullOrWhiteSpace(filter.PurchaseOrderNumber))
@@ -39,8 +43,8 @@ internal sealed class GetAllShipmentHandler(AppDbContext dbContext)
         var shipment = await query
         .OrderBy(x => x.PurchaseOrderNumber)
         .ThenBy(x => x.TimeOfArrival)
-        .Skip((pageNumber - 1) * pageSize)
-        .Take(pageSize)
+        .Skip((pageSize - 1) * pageNumber)
+        .Take(pageNumber)
         .AsNoTracking()
         .Select(s => new GetAllShipmentResponse(
             s.PurchaseOrderNumber,
@@ -58,6 +62,20 @@ public sealed class GetAllShipmentEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
+        app.MapGet("/api/v1/shipments/", async (GetAllShipmentHandler handler,
+        [AsParameters] ShipmentFilter filter,
+         CancellationToken ct,
+        int pageSize = 1,
+        int pageNumber = 10,
+        string? searchTerm = null) =>
+        {
+            var query = await handler.GetAllShipmentAsync(pageSize,
+            pageNumber,
+            searchTerm,
+            filter,
+            ct);
 
+            return Results.Ok(query);
+        });
     }
 }
