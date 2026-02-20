@@ -1,10 +1,11 @@
 using FluentValidation;
+using Shipment.Features.Shipments.Shared;
 
 namespace Shipment.Features.Shipments.CreateShipments;
 
-public sealed class CreateShipmentValidation : AbstractValidator<CreateShipmentRequest>
+public sealed class ShipmentValidation : AbstractValidator<ShipmentRequest>
 {
-    public CreateShipmentValidation()
+    public ShipmentValidation()
     {
         RuleFor(x => x.PurchaseOrderNumber)
             .NotEmpty()

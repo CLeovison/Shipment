@@ -3,7 +3,7 @@ using Shipment.Abstract.Messaging;
 using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.Shipments.GetAllShipments;
 using Shipment.Features.Shipments.GetShipmentsById;
-
+using Shipment.Features.Shipments.UpdateShipments;
 using Shipment.Features.User.CreateUsers;
 using Shipment.Features.User.DeleteUsers;
 using Shipment.Features.User.GetAllUsers;
@@ -47,7 +47,7 @@ public static class ServiceExtensions
         services.AddScoped<CreateShipmentHandler>();
         services.AddScoped<GetAllShipmentHandler>();
         services.AddScoped<GetShipmentByIdHandler>();
-
+        services.AddScoped<UpdateShipmentHandler>();
         return services;
     }
 }

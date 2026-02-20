@@ -27,8 +27,7 @@ public sealed class ShipmentConfiguration : IEntityTypeConfiguration<ShipmentDet
                      .ValueGeneratedOnAdd();
 
               builder.Property(x => x.ModifiedAt)
-                     .HasDefaultValueSql("CURRENT_DATE")
-                     .ValueGeneratedOnUpdate();
+                     .IsRequired(false);
 
               builder.HasOne(x => x.User)
                      .WithMany(u => u.Shipments)

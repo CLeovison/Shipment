@@ -22,7 +22,7 @@ public static class GetShipmentByIdMapper
             shipment.TimeOfArrival,
             CreatedBy,
             shipment.CreatedAt,
-            shipment.ModifiedAt);
+            shipment.ModifiedAt ?? DateTime.UtcNow);
 
     }
 }

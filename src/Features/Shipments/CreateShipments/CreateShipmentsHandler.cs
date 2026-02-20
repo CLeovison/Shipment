@@ -6,12 +6,13 @@ using Shipment.Abstract.Results.Errors;
 using Shipment.Database;
 using Shipment.Entities;
 using Shipment.Extensions;
+using Shipment.Features.Shipments.Shared;
 
 namespace Shipment.Features.Shipments.CreateShipments;
 
 internal sealed class CreateShipmentHandler(AppDbContext dbContext)
 {
-    public async Task<Result<CreateShipmentResponse>> CreateShipmentAsync(
+    public async Task<Result<ShipmentResponse>> CreateShipmentAsync(
         ShipmentDetails shipment,
         CancellationToken ct)
     {
@@ -20,7 +21,7 @@ internal sealed class CreateShipmentHandler(AppDbContext dbContext)
 
         if (duplicateExists)
         {
-            return Result.Failure<CreateShipmentResponse>(
+            return Result.Failure<ShipmentResponse>(
                 Error.AlreadyExists(nameof(Shipment)));
         }
 
@@ -29,7 +30,7 @@ internal sealed class CreateShipmentHandler(AppDbContext dbContext)
 
         if (!userExists)
         {
-            return Result.Failure<CreateShipmentResponse>(
+            return Result.Failure<ShipmentResponse>(
                 Error.NotFound);
         }
 
@@ -53,7 +54,7 @@ public sealed class CreateShipmentEndpoint : IEndpoint
     public void Endpoint(IEndpointRouteBuilder app)
     {
         app.MapPost("/api/v1/shipments/create", async (
-            [FromBody] CreateShipmentRequest request,
+            [FromBody] ShipmentRequest request,
             CreateShipmentHandler handler,
             CancellationToken ct) =>
         {
@@ -74,6 +75,6 @@ public sealed class CreateShipmentEndpoint : IEndpoint
                 $"/api/shipments/{result.Value.PurchaseOrderNumber}",
                 result.Value);
         })
-        .WithValidation<CreateShipmentRequest>();
+        .WithValidation<ShipmentRequest>();
     }
 }
