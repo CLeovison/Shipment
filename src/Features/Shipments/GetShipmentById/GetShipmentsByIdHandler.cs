@@ -6,15 +6,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Shipment.Features.Shipments.GetShipmentsById;
 
-public record class GetShipmentByIdResponse(
-    int ShipmentId,
-    string PurchaseOrderNumber,
-    string Vendor,
-    DateTime TimeOfArrival,
-    string CreatedBy,
-    DateTime CreatedAt,
-    DateTime ModifiedAt);
-
 internal sealed class GetShipmentByIdHandler(AppDbContext dbContext)
 {
 
@@ -27,20 +18,18 @@ internal sealed class GetShipmentByIdHandler(AppDbContext dbContext)
             return Result.Failure<GetShipmentByIdResponse>(Error.NotFound);
         }
 
-        var createBy = await dbContext.Users
+        var createdBy = await dbContext.Users
             .Where(u => u.UserId == shipment.UserId)
             .Select(u => u.FirstName)
             .FirstOrDefaultAsync(ct);
 
-        var response = new GetShipmentByIdResponse(
-            shipment.ShipmentId,
-            shipment.PurchaseOrderNumber,
-            shipment.Vendor,
-            shipment.TimeOfArrival,
-            createBy ?? string.Empty,
-            shipment.CreatedAt,
-            shipment.ModifiedAt);
-
+        if (createdBy is null)
+        {
+            return Result.Failure<GetShipmentByIdResponse>(Error.NotFound);
+        }
+        
+        var response = shipment.ToResponse(createdBy);
+        
         return Result.Success(response);
     }
 }

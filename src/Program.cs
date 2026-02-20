@@ -3,14 +3,6 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Database;
 using Shipment.Extensions;
-using Shipment.Features.Shipments.CreateShipments;
-using Shipment.Features.Shipments.GetAllShipments;
-using Shipment.Features.Shipments.GetShipmentsById;
-using Shipment.Features.User.CreateUsers;
-using Shipment.Features.User.DeleteUsers;
-using Shipment.Features.User.GetAllUsers;
-using Shipment.Features.User.GetUserById;
-using Shipment.Features.User.UpdateUsers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,18 +12,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 });
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
-
-builder.Services.AddScoped<CreateUserHandler>();
-builder.Services.AddScoped<DeleteUserHandler>();
-builder.Services.AddScoped<GetAllUserHandler>();
-builder.Services.AddScoped<GetUserByIdHandler>();
-builder.Services.AddScoped<UpdateUserHandler>();
-
-builder.Services.AddScoped<CreateShipmentHandler>();
-builder.Services.AddScoped<GetAllShipmentHandler>();
-builder.Services.AddScoped<GetShipmentByIdHandler>();
+builder.Services.AddUserHandler();
+builder.Services.AddShipmentHandler();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
 
 var app = builder.Build();
 
