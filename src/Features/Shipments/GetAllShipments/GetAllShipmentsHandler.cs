@@ -51,7 +51,6 @@ internal sealed class GetAllShipmentHandler(AppDbContext dbContext)
             s.Vendor,
             s.TimeOfArrival,
             s.User.FirstName
-
         ))
         .ToListAsync();
 

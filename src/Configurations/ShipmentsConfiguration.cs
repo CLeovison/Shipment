@@ -26,7 +26,7 @@ public sealed class ShipmentConfiguration : IEntityTypeConfiguration<ShipmentDet
                      .HasDefaultValueSql("CURRENT_DATE")
                      .ValueGeneratedOnAdd();
 
-              builder.Property(x => x.UpdatedAt)
+              builder.Property(x => x.ModifiedAt)
                      .HasDefaultValueSql("CURRENT_DATE")
                      .ValueGeneratedOnUpdate();
 

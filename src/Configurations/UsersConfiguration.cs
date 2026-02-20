@@ -38,7 +38,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<Users>
                .HasDefaultValueSql("CURRENT_TIMESTAMP")
                .ValueGeneratedOnAdd();
 
-        builder.Property(x => x.UpdatedAt)
+        builder.Property(x => x.ModifiedAt)
                .HasDefaultValueSql("CURRENT_TIMESTAMP")
                .ValueGeneratedOnUpdate();
 

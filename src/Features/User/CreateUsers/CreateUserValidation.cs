@@ -1,5 +1,4 @@
 using FluentValidation;
-using Shipment.Features.User.CreateUsers;
 
 namespace Shipment.Features.User.CreateUsers;
 

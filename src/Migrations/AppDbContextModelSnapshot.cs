@@ -35,6 +35,11 @@ namespace Shipment.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("CURRENT_DATE");
 
+                    b.Property<DateTime>("ModifiedAt")
+                        .ValueGeneratedOnUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_DATE");
+
                     b.Property<string>("PurchaseOrderNumber")
                         .IsRequired()
                         .HasMaxLength(250)
@@ -42,11 +47,6 @@ namespace Shipment.Migrations
 
                     b.Property<DateTime>("TimeOfArrival")
                         .HasColumnType("date");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_DATE");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
@@ -89,15 +89,15 @@ namespace Shipment.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<DateTime>("ModifiedAt")
+                        .ValueGeneratedOnUpdate()
+                        .HasColumnType("timestamp with time zone")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(250)
                         .HasColumnType("character varying(250)");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnUpdate()
-                        .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<string>("Username")
                         .IsRequired()

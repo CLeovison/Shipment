@@ -12,7 +12,7 @@ public record class UpdateUserRequest(
     string Username, 
     string Password,
     DateTime Birthday,
-    DateTime UpdateAt);
+    DateTime ModifiedAt);
 
 internal sealed class UpdateUserHandler(AppDbContext dbContext)
 {
@@ -50,8 +50,7 @@ public sealed class UpdateUserEndpoint : IEndpoint
                 return Results.Ok(result.Value);
             }
 
-            // You can customize error handling here
-            return Results.NotFound(result.Error); // 404 Not Found if user doesn't exist
+            return Results.NotFound(result.Error); 
         });
     }
 }

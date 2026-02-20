@@ -11,7 +11,7 @@ public static class UpdateUserMapper
         existing.Username = request.Username;
         existing.Password = request.Password;
         existing.Birthday = request.Birthday;
-        existing.UpdatedAt = request.UpdateAt; 
+        existing.ModifiedAt = request.ModifiedAt; 
     }
 
 }
