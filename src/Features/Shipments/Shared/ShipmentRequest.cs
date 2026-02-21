@@ -9,6 +9,6 @@ public sealed class ShipmentRequest
     public string UpdatedBy { get; set; } = string.Empty;
     public DateTime TimeOfArrival { get; set; }
 
-    public DateTime CreatedAt { get; set; }
+    public DateTime? CreatedAt { get; set; }
     public DateTime ModifiedAt { get; set; }
 }
