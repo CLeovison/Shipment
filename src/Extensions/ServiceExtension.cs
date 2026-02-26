@@ -1,6 +1,7 @@
 using Shipment.Abstract.Messaging;
 
 using Shipment.Features.Shipments.CreateShipments;
+using Shipment.Features.Shipments.DeleteShipments;
 using Shipment.Features.Shipments.GetAllShipments;
 using Shipment.Features.Shipments.GetShipmentsById;
 using Shipment.Features.Shipments.UpdateShipments;
@@ -48,6 +49,7 @@ public static class ServiceExtensions
         services.AddScoped<GetAllShipmentHandler>();
         services.AddScoped<GetShipmentByIdHandler>();
         services.AddScoped<UpdateShipmentHandler>();
+        services.AddScoped<DeleteShipmentHandler>();
         return services;
     }
 }

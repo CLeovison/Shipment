@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Shipment.Entities;
 
 namespace Shipment.Features.User.CreateUsers;
@@ -16,7 +17,7 @@ public static class CreateUserMapper
             FirstName = request.FirstName,
             LastName = request.LastName,
             Username = request.Username,
-            Password = request.Password,
+
             Birthday = request.Birthday
         };
     }

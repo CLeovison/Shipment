@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Abstract;
@@ -9,27 +10,30 @@ using Shipment.Extensions;
 
 namespace Shipment.Features.User.CreateUsers;
 
-internal sealed class CreateUserHandler(AppDbContext dbContext)
+internal sealed class CreateUserHandler(AppDbContext dbContext, PasswordHasher<Users> passwordHasher)
 {
-    public async Task<Result<Users>> CreateUserAsync(Users users, CancellationToken ct)
+    public async Task<Result<Users>> CreateUserAsync(CreateUserRequest request, CancellationToken ct)
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(users.Username))
+            if (string.IsNullOrWhiteSpace(request.Username))
             {
                 return Result.Failure<Users>(Error.NullValue);
             }
 
-            var exists = await dbContext.Users.AnyAsync(u => u.Username == users.Username, ct);
-            if (exists)
+            if (await dbContext.Users.AnyAsync(u => u.Username.ToLower() == request.Username, ct))
             {
                 return Result.Failure<Users>(Error.AlreadyExists("user"));
             }
 
-            dbContext.Users.Add(users);
+            var user = request.ToUserCreateRequest();
+
+            user.Password = passwordHasher.HashPassword(user, request.Password);
+
+            dbContext.Users.Add(user);
             await dbContext.SaveChangesAsync(ct);
 
-            return Result.Success(users);
+            return Result.Success(user);
         }
         catch (Exception)
         {
@@ -51,20 +55,19 @@ public class CreateUserEndpoint : IEndpoint
         {
             try
             {
-                var userEntity = request.ToUserCreateRequest();
-                var create = await handler.CreateUserAsync(userEntity, ct);
+                var result = await handler.CreateUserAsync(request, ct);
 
-                if (!create.IsSuccess)
+                if (!result.IsSuccess)
                 {
-                    return create.Error.Code switch
+                    return result.Error.Code switch
                     {
-                        "Error.AlreadyExists" => Results.Conflict(create.Error.Description),
-                        "Error.NullValue" => Results.BadRequest(create.Error.Description),
-                        _ => Results.BadRequest(create.Error.Description)
+                        "Error.AlreadyExists" => Results.Conflict(result.Error.Description),
+                        "Error.NullValue" => Results.BadRequest(result.Error.Description),
+                        _ => Results.BadRequest(result.Error.Description)
                     };
                 }
+                var response = result.Value.ToCreateUserResponse();
 
-                var response = create.Value.ToCreateUserResponse();
                 return Results.Created($"/api/v1/users/{response.Username}", response);
             }
             catch (Exception)
