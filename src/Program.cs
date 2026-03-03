@@ -13,9 +13,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 builder.Services.AddSignalR();
 
-
 builder.Services.AddUserHandler();
 builder.Services.AddShipmentHandler();
+builder.Services.Auth();
+
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 var app = builder.Build();

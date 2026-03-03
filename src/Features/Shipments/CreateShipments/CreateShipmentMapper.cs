@@ -1,12 +1,13 @@
 using Shipment.Entities;
-using Shipment.Features.Shipments.Shared;
 
 namespace Shipment.Features.Shipments.CreateShipments;
 
+public record class CreateShipmentRequest(string PurchaseOrderNumber, string Vendor, DateTime TimeOfArrival, int UserId);
+public record class CreateShipmentResponse(string PurchaseOrderNumber, string Vendor, DateTime TimeOfArrival, string CreatedBy);
 
 public static class CreateShipmentMapper
 {
-    public static ShipmentDetails ToRequest(this ShipmentRequest request)
+    public static ShipmentDetails ToRequest(this CreateShipmentRequest request)
     {
         return new ShipmentDetails
         {
@@ -17,14 +18,14 @@ public static class CreateShipmentMapper
         };
     }
 
-    public static ShipmentResponse ToResponse(this ShipmentDetails shipment, string CreatedBy)
+    public static CreateShipmentResponse ToResponse(this ShipmentDetails shipment, string CreatedBy)
     {
-        return new ShipmentResponse
-        {
-            PurchaseOrderNumber = shipment.PurchaseOrderNumber,
-            Vendor = shipment.Vendor,
-            TimeOfArrival = shipment.TimeOfArrival,
-            CreatedBy = CreatedBy
-        };
+        return new CreateShipmentResponse
+        (
+            shipment.PurchaseOrderNumber,
+            shipment.Vendor,
+            shipment.TimeOfArrival,
+            CreatedBy
+        );
     }
 }

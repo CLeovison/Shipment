@@ -3,6 +3,8 @@ using Shipment.Features.Shipments.Shared;
 
 namespace Shipment.Features.Shipments.UpdateShipments;
 
+public record class UpdateShipmentRequest();
+public record class UpdateShipmentResponse();
 
 public static class UpdateShipmentsMapper
 {

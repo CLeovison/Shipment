@@ -67,7 +67,7 @@ public sealed class UpdateShipmentEndpoint : IEndpoint
 
                 if (result.IsFailure)
                 {
-                    // Map known errors to proper HTTP responses
+           
                     return result.Error.Code switch
                     {
                         "NullValue" => Results.NotFound(result.Error),          
