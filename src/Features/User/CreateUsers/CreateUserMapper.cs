@@ -6,7 +6,6 @@ namespace Shipment.Features.User.CreateUsers;
 public record class CreateUserRequest(string FirstName, string LastName, string Username, string Password, string ConfirmPassword, DateTime Birthday);
 public record class CreateUserResponse(string FirstName, string LastName, string Username, DateTime Birthday);
 
-
 public static class CreateUserMapper
 {
 
@@ -17,7 +16,6 @@ public static class CreateUserMapper
             FirstName = request.FirstName,
             LastName = request.LastName,
             Username = request.Username,
-
             Birthday = request.Birthday
         };
     }

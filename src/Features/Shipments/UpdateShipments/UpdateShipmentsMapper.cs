@@ -1,13 +1,25 @@
 using Shipment.Entities;
-using Shipment.Features.Shipments.Shared;
 
 namespace Shipment.Features.Shipments.UpdateShipments;
 
+public record class UpdateShipmentRequest(
+    int ShipmentId,
+    string PurchaseOrderNumber,
+    string Vendor,
+    DateTime TimeOfArrival,
+    DateTime ModfiedAt, int UserId);
+
+public record class UpdateShipmentResponse(
+    string PurchaseOrderNumber,
+    string Vendor,
+    DateTime TimeOfArrival,
+    DateTime ModfiedAt,
+    string UpdatedBy);
 
 public static class UpdateShipmentsMapper
 {
 
-    public static void ToEntity(this ShipmentRequest request, ShipmentDetails details, string UpdatedBy)
+    public static void ToEntity(this UpdateShipmentRequest request, ShipmentDetails details, string UpdatedBy)
     {
         details.ShipmentId = request.ShipmentId;
         details.PurchaseOrderNumber = request.PurchaseOrderNumber;
@@ -15,18 +27,17 @@ public static class UpdateShipmentsMapper
         details.TimeOfArrival = request.TimeOfArrival;
         details.ModifiedAt = DateTime.UtcNow;
         details.UserId = request.UserId;
-
     }
 
-    public static ShipmentResponse ToResponse(this ShipmentDetails shipments, string UpdatedBy)
+    public static UpdateShipmentResponse ToResponse(this ShipmentDetails shipments, string UpdatedBy)
     {
-        return new ShipmentResponse
-        {
-            PurchaseOrderNumber = shipments.PurchaseOrderNumber,
-            Vendor = shipments.Vendor,
-            TimeOfArrival = shipments.TimeOfArrival,
-            UpdatedBy = UpdatedBy,
-            ModifiedAt = shipments.ModifiedAt ?? DateTime.UtcNow,
-        };
+        return new UpdateShipmentResponse
+       (
+        shipments.PurchaseOrderNumber,
+        shipments.Vendor,
+        shipments.TimeOfArrival,
+        shipments.ModifiedAt ?? DateTime.UtcNow,
+        UpdatedBy
+      );
     }
 }

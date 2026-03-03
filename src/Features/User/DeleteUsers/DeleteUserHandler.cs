@@ -48,7 +48,7 @@ public sealed class DeleteUserEndpoint : IEndpoint
                     return Results.NotFound(new { message = "User not found or could be deleted." });
                 }
 
-                return Results.NoContent();
+                return Results.Ok(new { message = "The user is successfully deleted." });
             }
             catch (Exception ex)
             {

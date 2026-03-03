@@ -1,5 +1,6 @@
+using Microsoft.AspNetCore.Identity;
 using Shipment.Abstract.Messaging;
-
+using Shipment.Entities;
 using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.Shipments.DeleteShipments;
 using Shipment.Features.Shipments.GetAllShipments;
@@ -50,6 +51,12 @@ public static class ServiceExtensions
         services.AddScoped<GetShipmentByIdHandler>();
         services.AddScoped<UpdateShipmentHandler>();
         services.AddScoped<DeleteShipmentHandler>();
+        return services;
+    }
+
+    public static IServiceCollection Auth(this IServiceCollection services)
+    {
+        services.AddScoped<PasswordHasher<Users>>();
         return services;
     }
 }
