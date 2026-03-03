@@ -1,8 +1,8 @@
 using FluentValidation;
 
-namespace Shipment.Features.Shipments.UpdateShipments;
+namespace Shipment.Features.Shipments.CreateShipments;
 
-public class CreateShipmentValidator : AbstractValidator<UpdateShipmentRequest>
+public class CreateShipmentValidator : AbstractValidator<CreateShipmentRequest>
 {
     public CreateShipmentValidator()
     {

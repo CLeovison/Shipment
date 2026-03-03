@@ -5,13 +5,13 @@ using Shipment.Abstract;
 using Shipment.Abstract.Results;
 using Shipment.Abstract.Results.Errors;
 using Shipment.Database;
-using Shipment.Features.Shipments.Shared;
+using Shipment.Extensions;
 
 namespace Shipment.Features.Shipments.UpdateShipments;
 
 internal sealed class UpdateShipmentHandler(AppDbContext dbContext)
 {
-    public async Task<Result<ShipmentResponse>> UpdateShipmentsAsync(int id, ShipmentRequest request, CancellationToken ct)
+    public async Task<Result<UpdateShipmentResponse>> UpdateShipmentsAsync(int id, UpdateShipmentRequest request, CancellationToken ct)
     {
         try
         {
@@ -19,7 +19,7 @@ internal sealed class UpdateShipmentHandler(AppDbContext dbContext)
 
             if (existing is null)
             {
-                return Result.Failure<ShipmentResponse>(Error.NullValue);
+                return Result.Failure<UpdateShipmentResponse>(Error.NullValue);
             }
 
 
@@ -30,7 +30,7 @@ internal sealed class UpdateShipmentHandler(AppDbContext dbContext)
 
             if (updateUser is null)
             {
-                return Result.Failure<ShipmentResponse>(Error.NullValue);
+                return Result.Failure<UpdateShipmentResponse>(Error.NullValue);
             }
 
             request.ToEntity(existing, updateUser);
@@ -42,7 +42,7 @@ internal sealed class UpdateShipmentHandler(AppDbContext dbContext)
         }
         catch (Exception ex)
         {
-            return Result.Failure<ShipmentResponse>(
+            return Result.Failure<UpdateShipmentResponse>(
              new Error("UnhandledException", $"An unexpected error occurred: {ex.Message}")
          );
 
@@ -55,9 +55,9 @@ public sealed class UpdateShipmentEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
-        _ = app.MapPut("/api/v1/shipments/{id}", async (
+        app.MapPut("/api/v1/shipments/{id}", async (
             int id,
-            [FromBody] ShipmentRequest request,
+            [FromBody] UpdateShipmentRequest request,
             [FromServices] UpdateShipmentHandler handler,
             CancellationToken ct) =>
         {
@@ -67,13 +67,13 @@ public sealed class UpdateShipmentEndpoint : IEndpoint
 
                 if (result.IsFailure)
                 {
-           
+
                     return result.Error.Code switch
                     {
-                        "NullValue" => Results.NotFound(result.Error),          
-                        "DatabaseUpdateError" => Results.Json(result.Error, statusCode: 500), 
-                        "OperationCanceled" => Results.Json(result.Error, statusCode: 499),   
-                        _ => Results.BadRequest(result.Error)       
+                        "NullValue" => Results.NotFound(result.Error),
+                        "DatabaseUpdateError" => Results.Json(result.Error, statusCode: 500),
+                        "OperationCanceled" => Results.Json(result.Error, statusCode: 499),
+                        _ => Results.BadRequest(result.Error)
                     };
                 }
 
@@ -86,6 +86,6 @@ public sealed class UpdateShipmentEndpoint : IEndpoint
                 var error = new Error("UnhandledException", $"Unexpected error: {ex.Message}");
                 return Results.Json(error, statusCode: 500);
             }
-        });
+        }).WithValidation<UpdateShipmentRequest>();
     }
 }
