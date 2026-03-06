@@ -76,6 +76,7 @@ public sealed class GetAllShipmentEndpoint : IEndpoint
             ct);
 
             return Results.Ok(query);
-        });
+        })
+        .RequireAuthorization();
     }
 }

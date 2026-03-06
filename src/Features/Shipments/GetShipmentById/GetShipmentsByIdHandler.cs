@@ -27,9 +27,9 @@ internal sealed class GetShipmentByIdHandler(AppDbContext dbContext)
         {
             return Result.Failure<GetShipmentByIdResponse>(Error.NotFound);
         }
-        
+
         var response = shipment.ToResponse(createdBy);
-        
+
         return Result.Success(response);
     }
 }
@@ -45,6 +45,7 @@ public sealed class GetShipmentByIdEndpoint : IEndpoint
             return result.IsSuccess
                 ? Results.Ok(result.Value)
                 : Results.NotFound(result.Error);
-        });
+        })
+        .RequireAuthorization();
     }
 }

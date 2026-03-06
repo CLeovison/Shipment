@@ -5,6 +5,7 @@ using Shipment.Database;
 using Shipment.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
+var configuration = builder.Configuration;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -15,12 +16,13 @@ builder.Services.AddSignalR();
 
 builder.Services.AddUserHandler();
 builder.Services.AddShipmentHandler();
-builder.Services.Auth();
+builder.Services.Auth(configuration);
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 var app = builder.Build();
 
 app.Endpoint();
-
+app.UseAuthentication();
+app.UseAuthorization();
 app.Run();
