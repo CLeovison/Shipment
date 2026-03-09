@@ -74,6 +74,7 @@ public sealed class CreateShipmentEndpoint : IEndpoint
                 $"/api/shipments/{result.Value.PurchaseOrderNumber}",
                 result.Value);
         })
-        .WithValidation<CreateShipmentRequest>();
+        .WithValidation<CreateShipmentRequest>()
+        .RequireAuthorization();
     }
 }

@@ -53,6 +53,7 @@ public sealed class DeleteShipmentEndpoint : IEndpoint
             {
                 return Results.Problem(detail: ex.Message, statusCode: 500, title: "An error occurred while deleting the shipment");
             }
-        });
+        })
+        .RequireAuthorization();
     }
 }
