@@ -2,7 +2,7 @@
 
 Shipment is a high-performance backend API built with **ASP.NET Core Minimal APIs** designed for managing users and shipment-related operations.
 
-The project focuses on clean architecture, modular feature-based design, and modern API development practices.
+The project focuses on modular feature-based design, and modern API development practices.
 
 ---
 
