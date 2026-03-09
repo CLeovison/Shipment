@@ -20,6 +20,7 @@ builder.Services.Auth(configuration);
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
+
 var app = builder.Build();
 
 app.Endpoint();

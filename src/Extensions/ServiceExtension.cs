@@ -3,8 +3,9 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
 using Shipment.Abstract.Messaging;
+using Shipment.Auth;
 using Shipment.Entities;
-
+using Shipment.Features.Auth.Login;
 using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.Shipments.DeleteShipments;
 using Shipment.Features.Shipments.GetAllShipments;
@@ -81,6 +82,9 @@ public static class ServiceExtensions
         });
 
         services.AddScoped<PasswordHasher<Users>>();
+
+        services.AddScoped<TokenProvider>();
+        services.AddScoped<LoginHandler>();
         return services;
     }
 }

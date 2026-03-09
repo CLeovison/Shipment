@@ -2,7 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using Microsoft.IdentityModel.Tokens; 
+using Microsoft.IdentityModel.Tokens;
 using Shipment.Abstract;
 using Shipment.Entities;
 
@@ -23,7 +23,8 @@ public sealed class TokenProvider(IConfiguration configuration) : ITokenProvider
             Subject = new ClaimsIdentity(
             [
                 new Claim(JwtRegisteredClaimNames.Sub, user.UserId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Name, user.FirstName)
+                new Claim(JwtRegisteredClaimNames.Name, user.FirstName),
+                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             ]
             ),
             Expires = DateTime.UtcNow.AddMinutes(configuration.GetValue<int>("Jwt:Expirations")),
@@ -34,9 +35,7 @@ public sealed class TokenProvider(IConfiguration configuration) : ITokenProvider
 
         var handler = new JwtSecurityTokenHandler();
 
-        string token = handler.WriteToken(handler.CreateToken(tokenDescriptor));
-
-        return token;
+        return handler.CreateEncodedJwt(tokenDescriptor);
     }
 
     public string GenerateRefreshToken()
