@@ -60,22 +60,41 @@ More details are available in:
 # Project Structure
 
 ```
-src
-│
-├── Features
-│   ├── User
-│   │   ├── CreateUsers
-│   │   ├── DeleteUsers
-│   │   ├── UpdateUsers
-│   │   └── GetUsers
-│
-├── Entities
-│
-├── Database
-│
-├── Auth
-│
-└── Abstract
+├───docs
+└───src
+    ├───Abstract
+    │   ├───Messaging
+    │   └───Results
+    │       └───Errors
+    ├───Auth
+    ├───Configurations
+    ├───Database
+    ├───Entities
+    │   └───Shared
+    ├───Extensions
+    ├───Features
+    │   ├───Auth
+    │   │   ├───Login
+    │   │   ├───RefreshToken
+    │   │   ├───Register
+    │   │   └───RevokeRefreshToken
+    │   ├───Shipments
+    │   │   ├───CreateShipments
+    │   │   ├───DeleteShipments
+    │   │   ├───GetAllShipments
+    │   │   ├───GetShipmentById
+    │   │   ├───Shared
+    │   │   └───UpdateShipments
+    │   └───User
+    │       ├───CreateUsers
+    │       ├───DeleteUsers
+    │       ├───GetAllUsers
+    │       ├───GetUsersById
+    │       └───UpdateUsers
+    ├───Hubs
+    ├───Migrations
+    ├───Options
+    └───Properties
 ```
 
 ### Feature-Based Design
@@ -146,13 +165,6 @@ See:
 
 ---
 
-# API Documentation
-
-Full API documentation is available in:
-
-`/docs/api.md`
-
----
 
 # Development
 
@@ -173,16 +185,6 @@ Planned improvements:
 - Distributed caching
 - Observability (logging + metrics)
 
----
-
-# Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Commit your changes
-4. Open a Pull Request
-
----
 
 # License
 
