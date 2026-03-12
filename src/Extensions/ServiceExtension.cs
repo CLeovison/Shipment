@@ -6,9 +6,11 @@ using Shipment.Abstract.Messaging;
 using Shipment.Auth;
 using Shipment.Entities;
 using Shipment.Features.Auth.Login;
+
 using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.Shipments.DeleteShipments;
 using Shipment.Features.Shipments.GetAllShipments;
+using Shipment.Features.Shipments.GetShipmentNotice;
 using Shipment.Features.Shipments.GetShipmentsById;
 using Shipment.Features.Shipments.UpdateShipments;
 
@@ -17,6 +19,7 @@ using Shipment.Features.User.DeleteUsers;
 using Shipment.Features.User.GetAllUsers;
 using Shipment.Features.User.GetUserById;
 using Shipment.Features.User.UpdateUsers;
+
 namespace Shipment.Extensions;
 
 public static class ServiceExtensions
@@ -55,6 +58,7 @@ public static class ServiceExtensions
         services.AddScoped<CreateShipmentHandler>();
         services.AddScoped<GetAllShipmentHandler>();
         services.AddScoped<GetShipmentByIdHandler>();
+        services.AddScoped<GetShipmentNoticeHandler>();
         services.AddScoped<UpdateShipmentHandler>();
         services.AddScoped<DeleteShipmentHandler>();
         return services;
@@ -85,6 +89,19 @@ public static class ServiceExtensions
 
         services.AddScoped<TokenProvider>();
         services.AddScoped<LoginHandler>();
+        return services;
+    }
+
+    public static IServiceCollection AddCorsPolicy(this IServiceCollection services)
+    {
+
+        services.AddCors(options =>{ options.AddDefaultPolicy(policy =>
+            policy.AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials()
+                  .WithOrigins("http://127.0.0.1:5500"));
+        });
+
         return services;
     }
 }
