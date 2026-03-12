@@ -6,9 +6,11 @@ using Shipment.Abstract.Messaging;
 using Shipment.Auth;
 using Shipment.Entities;
 using Shipment.Features.Auth.Login;
+
 using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.Shipments.DeleteShipments;
 using Shipment.Features.Shipments.GetAllShipments;
+using Shipment.Features.Shipments.GetShipmentNotice;
 using Shipment.Features.Shipments.GetShipmentsById;
 using Shipment.Features.Shipments.UpdateShipments;
 
@@ -55,6 +57,7 @@ public static class ServiceExtensions
         services.AddScoped<CreateShipmentHandler>();
         services.AddScoped<GetAllShipmentHandler>();
         services.AddScoped<GetShipmentByIdHandler>();
+        services.AddScoped<GetShipmentNoticeHandler>();
         services.AddScoped<UpdateShipmentHandler>();
         services.AddScoped<DeleteShipmentHandler>();
         return services;
