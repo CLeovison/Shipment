@@ -1,33 +1,41 @@
 # Shipment API
 
-Shipment is a high-performance backend API built with **ASP.NET Core Minimal APIs** designed for managing users and shipment-related operations.
+Shipment is a **high-performance backend API** built with **ASP.NET Core Minimal APIs** for managing users and shipment operations.
 
-The project focuses on modular feature-based design, and modern API development practices.
+The project focuses on **modular feature-based architecture**, modern API design practices, and secure authentication mechanisms.
+
+This repository can serve as:
+
+* A **production-ready backend API**
+* A **reference implementation** for building modular ASP.NET APIs
 
 ---
 
 # Features
 
-- JWT Authentication
-- Refresh Token Support
-- User Management
-- Pagination
-- FluentValidation Request Validation
-- Structured Result Pattern
-- Feature-based architecture
+* JWT Authentication
+* Refresh Token Support
+* User Management
+* Shipment Management
+* Pagination
+* FluentValidation Request Validation
+* Structured Result Pattern
+* Feature-based architecture
+* SignalR real-time notifications
 
 ---
 
 # Technology Stack
 
-| Technology | Purpose |
-|-----------|--------|
-| ASP.NET Core Minimal API | Web API Framework |
-| C# | Programming Language |
-| Entity Framework Core | ORM |
-| FluentValidation | Request Validation |
-| JWT | Authentication |
-| SQL Database | Data Persistence |
+| Technology               | Purpose                 |
+| ------------------------ | ----------------------- |
+| ASP.NET Core Minimal API | Web API framework       |
+| C#                       | Programming language    |
+| Entity Framework Core    | ORM                     |
+| FluentValidation         | Request validation      |
+| JWT                      | Authentication          |
+| SQL Database             | Data persistence        |
+| SignalR                  | Real-time communication |
 
 ---
 
@@ -45,68 +53,73 @@ Minimal API Endpoints
 Application Handlers
    │
    ▼
+Domain / Entities
+   │
+   ▼
 Entity Framework Core
    │
    ▼
 Database
 ```
 
-More details are available in:
+Additional architectural details can be found in:
 
-`/docs/architecture.md`
+```
+/docs/architecture.md
+```
 
 ---
 
 # Project Structure
 
 ```
-├───docs
-└───src
-    ├───Abstract
-    │   ├───Messaging
-    │   └───Results
-    │       └───Errors
-    ├───Auth
-    ├───Configurations
-    ├───Database
-    ├───Entities
-    │   └───Shared
-    ├───Extensions
-    ├───Features
-    │   ├───Auth
-    │   │   ├───Login
-    │   │   ├───RefreshToken
-    │   │   ├───Register
-    │   │   └───RevokeRefreshToken
-    │   ├───Shipments
-    │   │   ├───CreateShipments
-    │   │   ├───DeleteShipments
-    │   │   ├───GetAllShipments
-    │   │   ├───GetShipmentById
-    │   │   ├───Shared
-    │   │   └───UpdateShipments
-    │   └───User
-    │       ├───CreateUsers
-    │       ├───DeleteUsers
-    │       ├───GetAllUsers
-    │       ├───GetUsersById
-    │       └───UpdateUsers
-    ├───Hubs
-    ├───Migrations
-    ├───Options
-    └───Properties
+├── docs
+└── src
+    ├── Abstract
+    │   ├── Messaging
+    │   └── Results
+    │       └── Errors
+    ├── Auth
+    ├── Configurations
+    ├── Database
+    ├── Entities
+    │   └── Shared
+    ├── Extensions
+    ├── Features
+    │   ├── Auth
+    │   │   ├── Login
+    │   │   ├── RefreshToken
+    │   │   ├── Register
+    │   │   └── RevokeRefreshToken
+    │   ├── Shipments
+    │   │   ├── CreateShipments
+    │   │   ├── DeleteShipments
+    │   │   ├── GetAllShipments
+    │   │   ├── GetShipmentById
+    │   │   ├── Shared
+    │   │   └── UpdateShipments
+    │   └── User
+    │       ├── CreateUsers
+    │       ├── DeleteUsers
+    │       ├── GetAllUsers
+    │       ├── GetUsersById
+    │       └── UpdateUsers
+    ├── Hubs
+    ├── Migrations
+    ├── Options
+    └── Properties
 ```
 
-### Feature-Based Design
+## Feature-Based Design
 
-Each feature contains:
+Each feature module typically contains:
 
-- Request DTO
-- Handler
-- Validator
-- Endpoint registration
+* Request / Response DTOs
+* Handler (application logic)
+* Validator
+* Endpoint registration
 
-This approach improves maintainability and scalability.
+This structure keeps features **isolated, maintainable, and scalable**.
 
 ---
 
@@ -114,9 +127,9 @@ This approach improves maintainability and scalability.
 
 ## Prerequisites
 
-- .NET SDK
-- SQL Server or PostgreSQL
-- Git
+* .NET SDK
+* SQL Server or PostgreSQL
+* Git
 
 ---
 
@@ -128,7 +141,7 @@ Clone the repository:
 git clone https://github.com/CLeovison/Shipment.git
 ```
 
-Navigate to the project:
+Navigate into the project directory:
 
 ```
 cd Shipment
@@ -150,45 +163,52 @@ dotnet run
 
 # Authentication
 
-Shipment uses **JWT-based authentication**.
+Shipment uses **JWT-based authentication** combined with **refresh tokens**.
 
 Authentication flow:
 
-1. User logs in
-2. Server validates credentials
-3. Access token is generated
-4. Refresh token is issued
+1. User submits credentials
+2. Server validates the request
+3. Access token is issued
+4. Refresh token is stored
+5. Client can request a new access token using the refresh token
 
-See:
+More details are available in:
 
-`/docs/authentication.md`
+```
+/docs/authentication.md
+```
 
 ---
 
-
 # Development
 
-Development guidelines and best practices are documented in:
+Development conventions, architectural guidelines, and coding standards are documented in:
 
-`/docs/development.md`
+```
+/docs/development.md
+```
 
 ---
 
 # Roadmap
 
-Planned improvements:
+Planned improvements include:
 
-- Role-based authorization
-- Shipment tracking
-- Bulk operations
-- API rate limiting
-- Distributed caching
-- Observability (logging + metrics)
+* Role-based authorization
+* Shipment tracking
+* Bulk operations
+* API rate limiting
+* Distributed caching
+* Observability (logging and metrics)
 
+---
 
 # License
 
-This project currently has no license specified.
+This project is licensed under the **MIT License**.
+
+See the full license in the `LICENSE` file.
 
 ---
 
