@@ -19,28 +19,21 @@ builder.Services.AddSignalR();
 
 builder.Services.AddUserHandler();
 builder.Services.AddShipmentHandler();
+builder.Services.AddHttpContextAccessor();
 builder.Services.Auth(configuration);
 
-builder.Services.AddCors(options =>
-{
-    options.AddDefaultPolicy(policy =>
-        policy.AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials()
-              .WithOrigins("http://127.0.0.1:5500")); 
-});
-
+builder.Services.AddCorsPolicy();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 var app = builder.Build();
 
-app.UseRouting();       
-app.UseCors();           
+app.UseRouting();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 
 
-app.Endpoint(); 
-app.MapHub<ShipmentNotificationHub>("/hubs/shipments"); 
+app.Endpoint();
+app.MapHub<ShipmentNotificationHub>("/hubs/shipments");
 
 app.Run();

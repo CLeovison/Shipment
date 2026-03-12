@@ -5,32 +5,49 @@ using Shipment.Entities.Shared;
 
 namespace Shipment.Features.Shipments.GetAllShipments;
 
-public record class GetAllShipmentResponse(string PurchaseOrderNumber, string Vendor, DateTime TimeOfArrival, string CreatedBy);
+public record class GetAllShipmentResponse(
+    string PurchaseOrderNumber,
+    string Vendor,
+    DateTime TimeOfArrival,
+    string CreatedBy
+);
 
 internal sealed class GetAllShipmentHandler(AppDbContext dbContext)
 {
     public async Task<PaginationResponse<GetAllShipmentResponse>> GetAllShipmentAsync(
-            int pageSize,
-         int pageNumber,
-         string? searchTerm,
-         ShipmentFilter filter,
-         CancellationToken ct)
+        int page,
+        int pageSize,
+        string? searchTerm,
+        ShipmentFilter filter,
+        CancellationToken ct)
     {
         var query = dbContext.Shipments.AsQueryable();
 
-        var lowerCase = searchTerm?.Trim().ToLower();
 
-        if (!string.IsNullOrWhiteSpace(lowerCase))
+        if (!string.IsNullOrWhiteSpace(searchTerm))
         {
-            if (DateTime.TryParse(lowerCase, out DateTime parsedSearchDate))
+            var lowerCase = searchTerm.Trim().ToLower();
+            
+            if (DateTime.TryParse(lowerCase, out DateTime parsedDate))
             {
-                query = query.Where(x => x.PurchaseOrderNumber.Contains(lowerCase) || x.TimeOfArrival.Date == parsedSearchDate);
+                query = query.Where(x =>
+                    x.PurchaseOrderNumber.ToLower().Contains(lowerCase) ||
+                    x.TimeOfArrival.Date == parsedDate
+                );
+            }
+            else
+            {
+                query = query.Where(x =>
+                    x.PurchaseOrderNumber.ToLower().Contains(lowerCase)
+                );
             }
         }
 
         if (!string.IsNullOrWhiteSpace(filter.PurchaseOrderNumber))
         {
-            query = query.Where(x => x.PurchaseOrderNumber.Contains(filter.PurchaseOrderNumber));
+            query = query.Where(x =>
+                x.PurchaseOrderNumber.Contains(filter.PurchaseOrderNumber)
+            );
         }
 
         if (filter.TimeOfArrival != default)
@@ -40,21 +57,26 @@ internal sealed class GetAllShipmentHandler(AppDbContext dbContext)
 
         var totalCount = await query.CountAsync(ct);
 
-        var shipment = await query
-        .OrderBy(x => x.PurchaseOrderNumber)
-        .ThenBy(x => x.TimeOfArrival)
-        .Skip((pageSize - 1) * pageNumber)
-        .Take(pageNumber)
-        .AsNoTracking()
-        .Select(s => new GetAllShipmentResponse(
-            s.PurchaseOrderNumber,
-            s.Vendor,
-            s.TimeOfArrival,
-            s.User.FirstName
-        ))
-        .ToListAsync();
+        var shipments = await query
+            .OrderBy(x => x.PurchaseOrderNumber)
+            .ThenBy(x => x.TimeOfArrival)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .AsNoTracking()
+            .Select(s => new GetAllShipmentResponse(
+                s.PurchaseOrderNumber,
+                s.Vendor,
+                s.TimeOfArrival,
+                s.User.FirstName
+            ))
+            .ToListAsync(ct);
 
-        return new PaginationResponse<GetAllShipmentResponse>(shipment, pageSize, pageNumber, totalCount);
+        return new PaginationResponse<GetAllShipmentResponse>(
+            shipments,
+            page,
+            pageSize,
+            totalCount
+        );
     }
 }
 
@@ -62,20 +84,15 @@ public sealed class GetAllShipmentEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/v1/shipments/", async (GetAllShipmentHandler handler,
-        [AsParameters] ShipmentFilter filter,
-         CancellationToken ct,
-        int pageSize = 1,
-        int pageNumber = 10,
-        string? searchTerm = null) =>
+        app.MapGet("/api/v1/shipments", async (GetAllShipmentHandler handler, [AsParameters] ShipmentFilter filter,
+            int page = 1,
+            int pageSize = 10,
+            string? searchTerm = null,
+            CancellationToken ct = default) =>
         {
-            var query = await handler.GetAllShipmentAsync(pageSize,
-            pageNumber,
-            searchTerm,
-            filter,
-            ct);
+            var result = await handler.GetAllShipmentAsync(page, pageSize, searchTerm, filter, ct);
 
-            return Results.Ok(query);
+            return Results.Ok(result);
         });
     }
 }

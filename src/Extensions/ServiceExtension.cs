@@ -19,6 +19,7 @@ using Shipment.Features.User.DeleteUsers;
 using Shipment.Features.User.GetAllUsers;
 using Shipment.Features.User.GetUserById;
 using Shipment.Features.User.UpdateUsers;
+
 namespace Shipment.Extensions;
 
 public static class ServiceExtensions
@@ -88,6 +89,19 @@ public static class ServiceExtensions
 
         services.AddScoped<TokenProvider>();
         services.AddScoped<LoginHandler>();
+        return services;
+    }
+
+    public static IServiceCollection AddCorsPolicy(this IServiceCollection services)
+    {
+
+        services.AddCors(options =>{ options.AddDefaultPolicy(policy =>
+            policy.AllowAnyHeader()
+                  .AllowAnyMethod()
+                  .AllowCredentials()
+                  .WithOrigins("http://127.0.0.1:5500"));
+        });
+
         return services;
     }
 }
