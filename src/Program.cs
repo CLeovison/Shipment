@@ -3,27 +3,37 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Database;
 using Shipment.Extensions;
+using Shipment.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
 
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"));
+    options.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
 });
+
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
+
 builder.Services.AddSignalR();
 
 builder.Services.AddUserHandler();
 builder.Services.AddShipmentHandler();
+builder.Services.AddHttpContextAccessor();
 builder.Services.Auth(configuration);
 
+builder.Services.AddCorsPolicy();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-
 
 var app = builder.Build();
 
-app.Endpoint();
+app.UseRouting();
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
+
+
+app.Endpoint();
+app.MapHub<ShipmentNotificationHub>("/hubs/shipments");
+
 app.Run();
