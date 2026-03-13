@@ -8,8 +8,10 @@ public class ShipmentDetails : AuditableEntity
     public string PurchaseOrderNumber { get; set; } = string.Empty;
     public string Vendor { get; set; } = string.Empty;
     public DateTime TimeOfArrival { get; set; }
+
+    public bool IsNotified { get; set; } = false;
     public int UserId { get; set; }
-    
+
     //Injecting the Users into ShipmentDetails Entity is Called Navigation Propert
     public Users User { get; set; } = null!;
 

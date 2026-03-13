@@ -4,9 +4,9 @@ using Shipment.Entities;
 
 namespace Shipment.Configurations;
 
-public sealed class TokenConiguration : IEntityTypeConfiguration<RefreshToken>
+public sealed class TokenConiguration : IEntityTypeConfiguration<RefreshTokens>
 {
-    public void Configure(EntityTypeBuilder<RefreshToken> builder)
+    public void Configure(EntityTypeBuilder<RefreshTokens> builder)
     {
         builder.HasKey(x => x.RefreshTokenId);
 

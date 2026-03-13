@@ -42,4 +42,31 @@ public sealed class TokenProvider(IConfiguration configuration) : ITokenProvider
     {
         return Convert.ToBase64String(RandomNumberGenerator.GetBytes(32));
     }
+
+    public ClaimsPrincipal GetClaimsPrincipal(string accessToken)
+    {
+        var tokenValidParameters = new TokenValidationParameters
+        {
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]!)),
+            ValidateAudience = true,
+            ValidateIssuer = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = configuration["Jwt:Issuer"],
+            ValidAudience = configuration["Jwt:Audience"],
+            ClockSkew = TimeSpan.Zero
+        };
+
+        var tokenHandler = new JwtSecurityTokenHandler();
+
+        var principal = tokenHandler.ValidateToken(accessToken, tokenValidParameters, out SecurityToken validatedToken);
+
+        var jwtSecurityToken = validatedToken as JwtSecurityToken;
+
+        if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals
+        (SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+        {
+            throw new SecurityTokenException("Invalid Token");
+        }
+        return principal;
+    }
 }

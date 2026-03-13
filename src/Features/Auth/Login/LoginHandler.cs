@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.Data;
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Abstract;
@@ -12,7 +12,7 @@ namespace Shipment.Features.Auth.Login;
 public record class LoginRequest(string Username, string Password);
 
 public record class LoginResponse(string accessToken, string refreshToken);
-internal sealed class LoginHandler(AppDbContext dbContext, PasswordHasher<Users> passwordHasher, TokenProvider tokenProvider)
+internal sealed class LoginHandler(AppDbContext dbContext, PasswordHasher<Users> passwordHasher, ITokenProvider tokenProvider)
 {
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request)
@@ -28,7 +28,7 @@ internal sealed class LoginHandler(AppDbContext dbContext, PasswordHasher<Users>
 
         string accessToken = tokenProvider.GenerateToken(users);
 
-        var refreshToken = new RefreshToken
+        var refreshToken = new RefreshTokens
         {
             RefreshTokenId = Guid.NewGuid(),
             UserId = users.UserId,
@@ -48,7 +48,7 @@ public sealed class LoginEdpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/login", async ([FromBody] LoginRequest request, LoginHandler handler) =>
+        app.MapPost("/api/v1/auth/login", async ([FromBody] LoginRequest request, LoginHandler handler) =>
         {
             var login = await handler.LoginAsync(request);
 

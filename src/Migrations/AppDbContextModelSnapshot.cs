@@ -22,7 +22,7 @@ namespace Shipment.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
-            modelBuilder.Entity("Shipment.Entities.RefreshToken", b =>
+            modelBuilder.Entity("Shipment.Entities.RefreshTokens", b =>
                 {
                     b.Property<Guid>("RefreshTokenId")
                         .ValueGeneratedOnAdd()
@@ -38,6 +38,9 @@ namespace Shipment.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("current_date");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("Token")
                         .IsRequired()
@@ -68,15 +71,20 @@ namespace Shipment.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("timestamp with time zone")
-                        .HasDefaultValueSql("CURRENT_DATE");
+                        .HasDefaultValueSql("NOW()");
+
+                    b.Property<bool>("IsNotified")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false);
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PurchaseOrderNumber")
                         .IsRequired()
-                        .HasMaxLength(250)
-                        .HasColumnType("character varying(250)");
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("TimeOfArrival")
                         .HasColumnType("date");
@@ -91,7 +99,12 @@ namespace Shipment.Migrations
 
                     b.HasKey("ShipmentId");
 
-                    b.HasIndex("UserId");
+                    b.HasIndex("PurchaseOrderNumber")
+                        .IsUnique();
+
+                    b.HasIndex("TimeOfArrival");
+
+                    b.HasIndex("UserId", "TimeOfArrival", "IsNotified");
 
                     b.ToTable("Shipments");
                 });
@@ -145,7 +158,7 @@ namespace Shipment.Migrations
                     b.ToTable("Users");
                 });
 
-            modelBuilder.Entity("Shipment.Entities.RefreshToken", b =>
+            modelBuilder.Entity("Shipment.Entities.RefreshTokens", b =>
                 {
                     b.HasOne("Shipment.Entities.Users", "User")
                         .WithMany()

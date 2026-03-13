@@ -2,11 +2,12 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Tokens;
+using Shipment.Abstract;
 using Shipment.Abstract.Messaging;
 using Shipment.Auth;
 using Shipment.Entities;
 using Shipment.Features.Auth.Login;
-
+using Shipment.Features.Auth.RefreshToken;
 using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.Shipments.DeleteShipments;
 using Shipment.Features.Shipments.GetAllShipments;
@@ -86,8 +87,8 @@ public static class ServiceExtensions
         });
 
         services.AddScoped<PasswordHasher<Users>>();
-
-        services.AddScoped<TokenProvider>();
+        services.AddScoped<RefreshTokenHandler>();
+        services.AddScoped<ITokenProvider,TokenProvider>();
         services.AddScoped<LoginHandler>();
         return services;
     }
@@ -95,7 +96,9 @@ public static class ServiceExtensions
     public static IServiceCollection AddCorsPolicy(this IServiceCollection services)
     {
 
-        services.AddCors(options =>{ options.AddDefaultPolicy(policy =>
+        services.AddCors(options =>
+        {
+            options.AddDefaultPolicy(policy =>
             policy.AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials()

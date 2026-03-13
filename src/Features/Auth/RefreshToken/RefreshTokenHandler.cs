@@ -1,45 +1,53 @@
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Shipment.Abstract;
 using Shipment.Database;
 
-namespace Shipment.Features.Auth;
+namespace Shipment.Features.Auth.RefreshToken;
+
+public record class Request(string RefreshToken);
+public record class Response(string AccessToken, string RefreshToken);
 
 internal sealed class RefreshTokenHandler(AppDbContext dbContext, ITokenProvider tokenProvider)
 {
-    public async Task RefreshTokenAsync(string expiredToken, string refreshToken)
+    public async Task<Response> RefreshTokenAsync(Request request)
     {
-        if (string.IsNullOrWhiteSpace(expiredToken))
-        {
-            throw new SecurityTokenExpiredException("Invalid Token");
-        }
+        var tokenEntity = await dbContext.RefreshToken
+            .Include(x => x.User)
+            .SingleOrDefaultAsync(x => x.Token == request.RefreshToken);
 
-        if (string.IsNullOrWhiteSpace(refreshToken))
-        {
-            throw new SecurityTokenException("Invalid Token");
-        }
+        if (tokenEntity is null || tokenEntity.ExpiresAt < DateTime.UtcNow)
+            throw new ApplicationException("The refresh token is expired");
 
-        var tokenRotation = await dbContext.RefreshToken.Include(x => x.User).FirstOrDefaultAsync(x => x.Token == refreshToken);
+        if (tokenEntity.User is null)
+            throw new NullReferenceException("The user does not exist");
 
-        if (tokenRotation is null)
-        {
-            throw new SecurityTokenArgumentException("Unable to retrieve user for refresh token");
-        }
+        var accessToken = tokenProvider.GenerateToken(tokenEntity.User);
 
-        if (tokenRotation.ExpiresAt < DateTime.UtcNow)
-        {
-            throw new SecurityTokenExpiredException("The refresh token is expired.");
-        }
-
-        if (tokenRotation.User is null)
-        {
-            throw new KeyNotFoundException("The user is not existing");
-        }
-        var newAccessToken = tokenProvider.GenerateToken(tokenRotation.User);
-        var newRefreshToken = tokenProvider.GenerateRefreshToken();
-
-        tokenRotation.Token = newRefreshToken;
+        tokenEntity.Token = tokenProvider.GenerateRefreshToken();
+        tokenEntity.ExpiresAt = DateTime.UtcNow.AddDays(7);
 
         await dbContext.SaveChangesAsync();
+
+        return new Response(accessToken, tokenEntity.Token);
+    }
+}
+
+public sealed class RefreshTokenEndpoint : IEndpoint
+{
+    public void Endpoint(IEndpointRouteBuilder app)
+    {
+        app.MapPost("/api/v1/auth/refreshToken", async ([FromBody] Request request, RefreshTokenHandler handler) =>
+        {
+            try
+            {
+                var response = await handler.RefreshTokenAsync(request);
+                return Results.Ok(response);
+            }
+            catch
+            {
+                return Results.Unauthorized();
+            }
+        });
     }
 }
