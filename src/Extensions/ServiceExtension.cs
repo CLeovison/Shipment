@@ -6,8 +6,10 @@ using Shipment.Abstract;
 using Shipment.Abstract.Messaging;
 using Shipment.Auth;
 using Shipment.Entities;
+
 using Shipment.Features.Auth.Login;
 using Shipment.Features.Auth.RefreshToken;
+
 using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.Shipments.DeleteShipments;
 using Shipment.Features.Shipments.GetAllShipments;
@@ -88,8 +90,9 @@ public static class ServiceExtensions
 
         services.AddScoped<PasswordHasher<Users>>();
         services.AddScoped<RefreshTokenHandler>();
-        services.AddScoped<ITokenProvider,TokenProvider>();
+        services.AddScoped<ITokenProvider, TokenProvider>();
         services.AddScoped<LoginHandler>();
+        services.AddHttpContextAccessor();
         return services;
     }
 
