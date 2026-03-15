@@ -9,7 +9,7 @@ using Shipment.Entities;
 
 using Shipment.Features.Auth.Login;
 using Shipment.Features.Auth.RefreshToken;
-
+using Shipment.Features.Auth.RevokeRefreshToken;
 using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.Shipments.DeleteShipments;
 using Shipment.Features.Shipments.GetAllShipments;
@@ -76,14 +76,33 @@ public static class ServiceExtensions
         {
 
             opt.RequireHttpsMetadata = false;
+            opt.SaveToken = true;
+
+            // Allow JWT in cookie for browser clients
+            opt.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    // Check Authorization header first
+                    if (string.IsNullOrEmpty(context.Token))
+                    {
+                        // If missing, fallback to cookie
+                        var tokenFromCookie = context.Request.Cookies["accessToken"];
+                        if (!string.IsNullOrEmpty(tokenFromCookie))
+                            context.Token = tokenFromCookie;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
+
             opt.TokenValidationParameters = new TokenValidationParameters
             {
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]!)),
-                ValidateAudience = true,
                 ValidateIssuer = true,
-                ValidateIssuerSigningKey = true,
                 ValidIssuer = configuration["Jwt:Issuer"],
+                ValidateAudience = true,
                 ValidAudience = configuration["Jwt:Audience"],
+                RequireSignedTokens = true,
                 ClockSkew = TimeSpan.Zero
             };
         });
@@ -92,6 +111,7 @@ public static class ServiceExtensions
         services.AddScoped<RefreshTokenHandler>();
         services.AddScoped<ITokenProvider, TokenProvider>();
         services.AddScoped<LoginHandler>();
+        services.AddScoped<RevokeRefreshToken>();
         services.AddHttpContextAccessor();
         return services;
     }

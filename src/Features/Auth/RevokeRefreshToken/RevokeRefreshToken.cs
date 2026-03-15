@@ -5,36 +5,31 @@ using Shipment.Database;
 
 namespace Shipment.Features.Auth.RevokeRefreshToken;
 
-internal sealed class RevokeRefreshToken(AppDbContext dbContext, IHttpContextAccessor accessor)
+internal sealed class RevokeRefreshToken(AppDbContext dbContext)
 {
-    public async Task<bool> RevokeRefreshTokenAsync()
+    public async Task RevokeRefreshTokenAsync(int userId, CancellationToken ct)
     {
-        var claim = accessor.HttpContext?.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-        if (claim is null)
-        {
-            throw new UnauthorizedAccessException("User not authenticated");
-        }
-
-        var userId = int.Parse(claim);
-
-        await dbContext.RefreshToken.Where(x => x.UserId == userId).ExecuteDeleteAsync();
-
-        return true;
+        await dbContext.RefreshToken
+            .Where(x => x.UserId == userId)
+            .ExecuteDeleteAsync(ct);
     }
-
-
 }
 
 public sealed class RevokeRefreshTokenEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
-        app.MapDelete("/api/v1/auth/revoke", async (RevokeRefreshToken handler) =>
+        app.MapDelete("/api/v1/auth/revoke",
+        async (RevokeRefreshToken handler, ClaimsPrincipal user, CancellationToken ct) =>
         {
-            await handler.RevokeRefreshTokenAsync();
-            return Results.Ok();
-        });
-      
+            var userClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            if (!int.TryParse(userClaim, out var userId))
+                return Results.Unauthorized();
+
+            await handler.RevokeRefreshTokenAsync(userId, ct);
+
+            return Results.NoContent();
+        }).RequireAuthorization();
     }
 }

@@ -79,6 +79,6 @@ public sealed class CreateShipmentEndpoint : IEndpoint
                     title: "An unexpected error occurred while creating the shipment");
             }
         })
-        .WithValidation<CreateShipmentRequest>();
+        .WithValidation<CreateShipmentRequest>().RequireAuthorization();
     }
 }
