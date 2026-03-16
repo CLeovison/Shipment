@@ -23,7 +23,7 @@ internal sealed class GetAllShipmentHandler(AppDbContext dbContext)
     {
         var query = dbContext.Shipments.AsQueryable();
 
-
+        //Searching
         if (!string.IsNullOrWhiteSpace(searchTerm))
         {
             var lowerCase = searchTerm.Trim().ToLower();
@@ -43,6 +43,7 @@ internal sealed class GetAllShipmentHandler(AppDbContext dbContext)
             }
         }
 
+        //Filtering
         if (!string.IsNullOrWhiteSpace(filter.PurchaseOrderNumber))
         {
             query = query.Where(x =>

@@ -70,9 +70,7 @@ internal sealed class GetShipmentNoticeHandler(
                 x.TimeOfArrival));
     }
 
-    private static IReadOnlyList<GetShipmentNoticeResponse> MapToResponse(
-        IEnumerable<ShipmentProjection> shipments,
-        DateTime today)
+    private static IReadOnlyList<GetShipmentNoticeResponse> MapToResponse(IEnumerable<ShipmentProjection> shipments, DateTime today)
     {
         return shipments
             .Select(x => new GetShipmentNoticeResponse(

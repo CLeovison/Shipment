@@ -63,7 +63,7 @@ public sealed class TokenProvider(IConfiguration configuration) : ITokenProvider
         var jwtSecurityToken = validatedToken as JwtSecurityToken;
 
         if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals
-        (SecurityAlgorithms.HmacSha512, StringComparison.InvariantCultureIgnoreCase))
+        (SecurityAlgorithms.HmacSha512Signature, StringComparison.InvariantCultureIgnoreCase))
         {
             throw new SecurityTokenException("Invalid Token");
         }

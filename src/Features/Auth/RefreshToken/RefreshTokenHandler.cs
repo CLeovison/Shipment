@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Abstract;
 using Shipment.Database;
+using Shipment.Extensions;
 
 namespace Shipment.Features.Auth.RefreshToken;
 
@@ -37,11 +38,16 @@ public sealed class RefreshTokenEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/auth/refreshToken", async ([FromBody] Request request, RefreshTokenHandler handler) =>
+        app.MapPost("/api/v1/auth/refreshToken", async ([FromBody] Request request, RefreshTokenHandler handler, HttpContext httpContext
+        ) =>
         {
             try
             {
                 var response = await handler.RefreshTokenAsync(request);
+
+                httpContext.StoredTokenInCookie("accessToken", response.AccessToken, DateTime.UtcNow.AddMinutes(2));
+                httpContext.StoredTokenInCookie("refreshToken", response.RefreshToken, DateTime.UtcNow.AddDays(7));
+
                 return Results.Ok(response);
             }
             catch
