@@ -20,7 +20,7 @@ public sealed class RevokeRefreshTokenEndpoint : IEndpoint
     public void Endpoint(IEndpointRouteBuilder app)
     {
         app.MapDelete("/api/v1/auth/revoke",
-        async (RevokeRefreshToken handler, ClaimsPrincipal user, CancellationToken ct) =>
+        async (RevokeRefreshToken handler, ClaimsPrincipal user, CancellationToken ct, HttpContext httpContext) =>
         {
             var userClaim = user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -29,6 +29,7 @@ public sealed class RevokeRefreshTokenEndpoint : IEndpoint
 
             await handler.RevokeRefreshTokenAsync(userId, ct);
 
+            httpContext.Response.Cookies.Delete("refreshToken");
             return Results.NoContent();
         }).RequireAuthorization();
     }

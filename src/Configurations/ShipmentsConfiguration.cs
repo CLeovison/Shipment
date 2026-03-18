@@ -42,7 +42,6 @@ public sealed class ShipmentConfiguration : IEntityTypeConfiguration<ShipmentDet
 
               builder.HasIndex(x => new
               {
-                     x.UserId,
                      x.TimeOfArrival,
                      x.IsNotified
               });

@@ -1,8 +1,10 @@
 using System.Reflection;
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Shipment.Background;
 using Shipment.Database;
 using Shipment.Extensions;
+
 using Shipment.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -15,6 +17,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
+builder.Services.AddHostedService<ShipmentNoticeWorker>();
 builder.Services.AddSignalR();
 
 builder.Services.AddUserHandler();

@@ -64,8 +64,8 @@ public sealed class LoginEdpoint : IEndpoint
 
             httpContext.StoredTokenInCookie("accessToken", login.accessToken, DateTime.UtcNow.AddMinutes(2));
             httpContext.StoredTokenInCookie("refreshToken", login.refreshToken, DateTime.UtcNow.AddDays(7));
-
+            
             return Results.Ok(login);
-        });
+        }).WithValidation<LoginRequest>();
     }
 }

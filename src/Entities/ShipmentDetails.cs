@@ -12,7 +12,7 @@ public class ShipmentDetails : AuditableEntity
     public bool IsNotified { get; set; } = false;
     public int UserId { get; set; }
 
-    //Injecting the Users into ShipmentDetails Entity is Called Navigation Propert
+    //Injecting the Users into ShipmentDetails Entity is Called Navigation Property
     public Users User { get; set; } = null!;
 
 }

@@ -8,6 +8,7 @@ using Shipment.Auth;
 using Shipment.Entities;
 
 using Shipment.Features.Auth.Login;
+using Shipment.Features.Auth.Logout;
 using Shipment.Features.Auth.RefreshToken;
 using Shipment.Features.Auth.RevokeRefreshToken;
 using Shipment.Features.Shipments.CreateShipments;
@@ -111,6 +112,7 @@ public static class ServiceExtensions
         services.AddScoped<RefreshTokenHandler>();
         services.AddScoped<ITokenProvider, TokenProvider>();
         services.AddScoped<LoginHandler>();
+        services.AddScoped<LogoutHandler>();
         services.AddScoped<RevokeRefreshToken>();
         services.AddHttpContextAccessor();
         return services;
