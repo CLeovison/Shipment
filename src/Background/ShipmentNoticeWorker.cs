@@ -15,6 +15,7 @@ IHubContext<ShipmentNotificationHub> hub) : BackgroundService
 
         while (!stoppingToken.IsCancellationRequested)
         {
+           
             await ShipmentNotifiation(stoppingToken);
 
             await Task.Delay(TimeSpan.FromHours(1), stoppingToken);

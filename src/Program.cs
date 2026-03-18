@@ -18,6 +18,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
 builder.Services.AddHostedService<ShipmentNoticeWorker>();
+
 builder.Services.AddSignalR();
 
 builder.Services.AddUserHandler();

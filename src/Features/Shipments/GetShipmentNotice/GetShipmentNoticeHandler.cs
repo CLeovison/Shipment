@@ -41,6 +41,20 @@ internal sealed class GetShipmentNoticeHandler(
         if (response.Count > 0)
         {
             await hub.Clients.User(userId.Value.ToString()).ShipmentArrivalNotice(response);
+
+            var updateList = await dbContext.Shipments
+                .Where(x => x.UserId == userId.Value &&
+                            !x.IsNotified &&
+                            x.TimeOfArrival <= today.AddDays(NoticeDays) &&
+                            x.TimeOfArrival >= today)
+                .ToListAsync(ct);
+
+            foreach (var shipment in updateList)
+            {
+                shipment.IsNotified = true;
+            }
+            await dbContext.SaveChangesAsync(ct);
+
         }
 
         return response;
