@@ -73,12 +73,18 @@ namespace Shipment.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasDefaultValueSql("NOW()");
 
-                    b.Property<bool>("IsNotified")
+                    b.Property<bool>("IsCompleted")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false);
 
+                    b.Property<DateTime?>("LastNotifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
                     b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime>("NotifyStartAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PurchaseOrderNumber")
@@ -104,7 +110,9 @@ namespace Shipment.Migrations
 
                     b.HasIndex("TimeOfArrival");
 
-                    b.HasIndex("UserId", "TimeOfArrival", "IsNotified");
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("NotifyStartAt", "TimeOfArrival", "LastNotifiedAt", "IsCompleted");
 
                     b.ToTable("Shipments");
                 });

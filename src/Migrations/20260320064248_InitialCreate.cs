@@ -62,7 +62,9 @@ namespace Shipment.Migrations
                     PurchaseOrderNumber = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
                     Vendor = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: false),
                     TimeOfArrival = table.Column<DateTime>(type: "date", nullable: false),
-                    IsNotified = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
+                    NotifyStartAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    LastNotifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    IsCompleted = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     UserId = table.Column<int>(type: "integer", nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "NOW()"),
                     ModifiedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
@@ -90,6 +92,11 @@ namespace Shipment.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Shipments_NotifyStartAt_TimeOfArrival_LastNotifiedAt_IsComp~",
+                table: "Shipments",
+                columns: new[] { "NotifyStartAt", "TimeOfArrival", "LastNotifiedAt", "IsCompleted" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Shipments_PurchaseOrderNumber",
                 table: "Shipments",
                 column: "PurchaseOrderNumber",
@@ -101,9 +108,9 @@ namespace Shipment.Migrations
                 column: "TimeOfArrival");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Shipments_UserId_TimeOfArrival_IsNotified",
+                name: "IX_Shipments_UserId",
                 table: "Shipments",
-                columns: new[] { "UserId", "TimeOfArrival", "IsNotified" });
+                column: "UserId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Users_Username",

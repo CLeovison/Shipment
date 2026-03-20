@@ -62,7 +62,7 @@ public sealed class LoginEdpoint : IEndpoint
         {
             var login = await handler.LoginAsync(request, ct);
 
-            httpContext.StoredTokenInCookie("accessToken", login.accessToken, DateTime.UtcNow.AddMinutes(2));
+            httpContext.StoredTokenInCookie("accessToken", login.accessToken, DateTime.UtcNow.AddMinutes(15));
             httpContext.StoredTokenInCookie("refreshToken", login.refreshToken, DateTime.UtcNow.AddDays(7));
             
             return Results.Ok(login);

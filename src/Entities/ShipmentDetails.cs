@@ -9,7 +9,10 @@ public class ShipmentDetails : AuditableEntity
     public string Vendor { get; set; } = string.Empty;
     public DateTime TimeOfArrival { get; set; }
 
-    public bool IsNotified { get; set; } = false;
+    public DateTime NotifyStartAt { get; set; }
+    public DateTime? LastNotifiedAt { get; set; }
+    public bool IsCompleted { get; set; } = false;
+
     public int UserId { get; set; }
 
     //Injecting the Users into ShipmentDetails Entity is Called Navigation Property

@@ -1,4 +1,5 @@
 using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -12,14 +13,22 @@ using Shipment.Hubs;
 
 namespace Shipment.Features.Shipments.CreateShipments;
 
-internal sealed class CreateShipmentHandler(AppDbContext dbContext,
-IHubContext<ShipmentNotificationHub, IShipmentClient> hub,
-IHttpContextAccessor httpContext)
+internal sealed class CreateShipmentHandler(
+    AppDbContext dbContext,
+    IHubContext<ShipmentNotificationHub, IShipmentClient> hub,
+    IHttpContextAccessor httpContext)
 {
-    public async Task<Result<CreateShipmentResponse>> CreateShipmentAsync(
-        ShipmentDetails shipment,
-        CancellationToken ct)
+    public async Task<Result<CreateShipmentResponse>> CreateShipmentAsync(ShipmentDetails shipment, CancellationToken ct)
     {
+        var userIdClaim = httpContext.HttpContext?.User?
+            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
+        {
+            return Result.Failure<CreateShipmentResponse>(Error.Unauthorized);
+        }
+
+        shipment.UserId = userId;
 
         var duplicateExists = await dbContext.Shipments
             .AnyAsync(x => x.PurchaseOrderNumber == shipment.PurchaseOrderNumber, ct);
@@ -30,16 +39,16 @@ IHttpContextAccessor httpContext)
         dbContext.Shipments.Add(shipment);
         await dbContext.SaveChangesAsync(ct);
 
-        var userFirstName = httpContext.HttpContext?.User?.FindFirst(c => c.Type == JwtRegisteredClaimNames.Name)?.Value ?? "Unknown";
+        var userName = httpContext.HttpContext?.User?
+            .FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
-        var response = shipment.ToResponse(userFirstName);
+        var response = shipment.ToResponse(userName);
 
-        await hub.Clients.User(shipment.UserId.ToString()).ShipmentCreated(response);
+        await hub.Clients.User(userId.ToString()).ShipmentCreated(response);
 
         return Result.Success(response);
     }
 }
-
 
 public sealed class CreateShipmentEndpoint : IEndpoint
 {

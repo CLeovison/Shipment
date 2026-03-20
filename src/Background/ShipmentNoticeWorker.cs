@@ -40,10 +40,12 @@ public class ShipmentNoticeWorker(
 
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var threshold = DateTime.UtcNow.AddDays(14);
+        var today = DateTime.UtcNow.Date;
 
         var shipments = await db.Shipments
-            .Where(x => !x.IsNotified && x.TimeOfArrival <= threshold)
+            .Where(x => !x.IsCompleted && x.NotifyStartAt <= today && x.TimeOfArrival >= today
+            && (x.LastNotifiedAt == null || x.LastNotifiedAt.Value.Date < today)
+            )
             .ToListAsync(ct);
 
         if (shipments.Count == 0)
@@ -54,6 +56,7 @@ public class ShipmentNoticeWorker(
 
         foreach (var shipment in shipments)
         {
+            var daysRemaining = (shipment.TimeOfArrival.Date - today).Days;
             logger.LogInformation(
                 "Shipment {PurchaseOrderNumber} from {Vendor} arriving at {ArrivalDate}",
                 shipment.PurchaseOrderNumber,
@@ -66,9 +69,15 @@ public class ShipmentNoticeWorker(
                     shipment.PurchaseOrderNumber,
                     shipment.Vendor,
                     shipment.TimeOfArrival,
+                    daysRemaining,
                     ct);
 
-            shipment.IsNotified = true;
+            shipment.LastNotifiedAt = DateTime.UtcNow;
+
+            if(shipment.LastNotifiedAt <= today)
+            {
+                shipment.IsCompleted = true;
+            }
         }
 
         await db.SaveChangesAsync(ct);

@@ -45,7 +45,7 @@ public sealed class RefreshTokenEndpoint : IEndpoint
             {
                 var response = await handler.RefreshTokenAsync(request);
 
-                httpContext.StoredTokenInCookie("accessToken", response.AccessToken, DateTime.UtcNow.AddMinutes(2));
+                httpContext.StoredTokenInCookie("accessToken", response.AccessToken, DateTime.UtcNow.AddMinutes(15));
                 httpContext.StoredTokenInCookie("refreshToken", response.RefreshToken, DateTime.UtcNow.AddDays(7));
 
                 return Results.Ok(response);
