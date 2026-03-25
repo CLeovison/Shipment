@@ -1,30 +1,21 @@
 using System.Globalization;
 using CsvHelper;
-using Shipment.Abstract;
-using Shipment.Database;
+using Shipment.Entities;
 
 namespace Shipment.Features.Shipments.UploadShipments;
 
-internal sealed class UploadShipmentsHandler(UploadShipmentQueue queue)
+
+internal sealed class UploadShipmentHandler(UploadShipmentQueue queue)
 {
-    public async Task UploadShipmentsAsync(IFormFile file, CancellationToken ct)
+    public async Task UploadShipmentAsync(IFormFile file, CancellationToken ct)
     {
-        using var reader = new StreamReader(file.OpenReadStream());
+        using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream);
         using var csv = new CsvReader(reader, CultureInfo.InvariantCulture);
 
-        var records = csv.GetRecord<ShipmentCsvRecord>();
-
-        
-    }
-}
-
-public sealed class UploadShipmentEndpoint : IEndpoint
-{
-    public void Endpoint(IEndpointRouteBuilder app)
-    {
-        app.MapPost("/api/v1/shipments/upload", async () =>
+        await foreach (var shipments in csv.GetRecordsAsync<ShipmentDetails>())
         {
-
-        });
+            await queue.Writer.WaitToWriteAsync();
+        }
     }
 }

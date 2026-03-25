@@ -1,16 +1,17 @@
 using System.Threading.Channels;
+using Shipment.Entities;
 
 namespace Shipment.Features.Shipments.UploadShipments;
 
-public sealed class UploadShipmentQueue(Channel<ShipmentCsvRecord> channel)
+public sealed class UploadShipmentQueue
 {
-    public ChannelWriter<ShipmentCsvRecord> channelWriter => channel.Writer;
-    public ChannelReader<ShipmentCsvRecord> channelReader => channel.Reader;
+    private readonly Channel<ShipmentDetails> channel = Channel.CreateBounded<ShipmentDetails>(new BoundedChannelOptions(1000)
+    {
+        SingleReader = true,
+        SingleWriter = false,
+        FullMode = BoundedChannelFullMode.Wait
 
-    public static UploadShipmentQueue CreateUnbounded() => new UploadShipmentQueue(Channel.CreateUnbounded<ShipmentCsvRecord>());
-    public static UploadShipmentQueue CreateBounded(int capacity) => new UploadShipmentQueue(Channel.CreateBounded<ShipmentCsvRecord>(
-        new BoundedChannelOptions(capacity)
-        {
-            FullMode = BoundedChannelFullMode.Wait
-        }));
+    });
+    public ChannelWriter<ShipmentDetails> Writer => channel.Writer;
+    public ChannelReader<ShipmentDetails> Reader => channel.Reader;
 }

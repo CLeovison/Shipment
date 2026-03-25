@@ -17,7 +17,7 @@ using Shipment.Features.Shipments.GetAllShipments;
 using Shipment.Features.Shipments.GetShipmentNotice;
 using Shipment.Features.Shipments.GetShipmentsById;
 using Shipment.Features.Shipments.UpdateShipments;
-
+using Shipment.Features.Shipments.UploadShipments;
 using Shipment.Features.User.CreateUsers;
 using Shipment.Features.User.DeleteUsers;
 using Shipment.Features.User.GetAllUsers;
@@ -65,6 +65,7 @@ public static class ServiceExtensions
         services.AddScoped<GetShipmentNoticeHandler>();
         services.AddScoped<UpdateShipmentHandler>();
         services.AddScoped<DeleteShipmentHandler>();
+        services.AddScoped<UploadShipmentsHandler>();
         return services;
     }
 
