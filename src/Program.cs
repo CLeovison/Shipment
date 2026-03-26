@@ -1,6 +1,5 @@
 using System.Reflection;
 using FluentValidation;
-using Microsoft.AspNetCore.Antiforgery;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Background;
 using Shipment.Database;
@@ -34,10 +33,6 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddCorsPolicy();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
-builder.Services.AddAntiforgery(options =>
-{
-    options.HeaderName = "X-CSRF-TOKEN";
-});
 
 var app = builder.Build();
 

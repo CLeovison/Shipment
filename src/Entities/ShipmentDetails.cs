@@ -13,7 +13,7 @@ public class ShipmentDetails : AuditableEntity
     public DateTime? LastNotifiedAt { get; set; }
     public bool IsCompleted { get; set; } = false;
 
-    public int UserId { get; set; }
+    public int? UserId { get; set; }
 
     //Injecting the Users into ShipmentDetails Entity is Called Navigation Property
     public Users User { get; set; } = null!;

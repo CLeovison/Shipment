@@ -2,29 +2,26 @@ using System.Globalization;
 using CsvHelper;
 using Shipment.Abstract;
 using Shipment.Entities;
-using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Routing;
-using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 
 namespace Shipment.Features.Shipments.UploadShipments;
 
-// Primary constructor style
 internal sealed class UploadShipmentHandler(UploadShipmentQueue queue, IHttpContextAccessor httpContext)
 {
     public async Task UploadShipmentAsync(IFormFile file, CancellationToken ct)
     {
         // Capture authenticated user ID
         var userIdClaim = httpContext.HttpContext?.User?
-            .FindFirst(JwtRegisteredClaimNames.Sub)?.Value;
+                   .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
 
         if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
             throw new InvalidOperationException("Cannot determine authenticated user.");
 
         var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
         {
-            HeaderValidated = null,      
-            MissingFieldFound = null     
+            HeaderValidated = null,
+            MissingFieldFound = null
         };
 
         using var stream = file.OpenReadStream();
@@ -37,8 +34,7 @@ internal sealed class UploadShipmentHandler(UploadShipmentQueue queue, IHttpCont
         {
             if (string.IsNullOrWhiteSpace(record.PurchaseOrderNumber))
                 continue;
-
-            record.UserId = userId;
+                
             await queue.Writer.WriteAsync(record, ct);
         }
     }
