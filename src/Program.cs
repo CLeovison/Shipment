@@ -22,7 +22,7 @@ builder.Services.AddSingleton<UploadShipmentQueue>();
 
 builder.Services.AddHostedService<ShipmentNoticeWorker>();
 builder.Services.AddHostedService<RefreshTokenWorker>();
-builder.Services.AddHostedService<ShipmentUploadWorker>();
+builder.Services.AddHostedService<ShipmentsUploadWorker>();
 
 builder.Services.AddSignalR();
 
@@ -44,9 +44,8 @@ var app = builder.Build();
 app.UseRouting();
 app.UseCors();
 
-app.UseAuthentication();
+app.UseAuthentication(); 
 app.UseAuthorization();
-
 
 app.Endpoint();
 app.MapHub<ShipmentNotificationHub>("/hubs/shipments");

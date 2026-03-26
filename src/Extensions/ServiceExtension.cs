@@ -65,14 +65,15 @@ public static class ServiceExtensions
         services.AddScoped<GetShipmentNoticeHandler>();
         services.AddScoped<UpdateShipmentHandler>();
         services.AddScoped<DeleteShipmentHandler>();
-        services.AddScoped<UploadShipmentsHandler>();
+        services.AddScoped<UploadShipmentHandler>();
         return services;
     }
 
     public static IServiceCollection Auth(this IServiceCollection services, IConfiguration configuration)
     {
+
+
         services
-        .AddAuthorization()
         .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(opt =>
         {
@@ -99,16 +100,17 @@ public static class ServiceExtensions
 
             opt.TokenValidationParameters = new TokenValidationParameters
             {
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]!)),
                 ValidateIssuer = true,
-                ValidIssuer = configuration["Jwt:Issuer"],
                 ValidateAudience = true,
-                ValidAudience = configuration["Jwt:Audience"],
+                ValidateLifetime = true,
                 RequireSignedTokens = true,
+                ValidIssuer = configuration["Jwt:Issuer"],
+                ValidAudience = configuration["Jwt:Audience"],
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(configuration["Jwt:SecretKey"]!)),
                 ClockSkew = TimeSpan.Zero
             };
         });
-
+        services.AddAuthorization();
         services.AddScoped<PasswordHasher<Users>>();
         services.AddScoped<RefreshTokenHandler>();
         services.AddScoped<ITokenProvider, TokenProvider>();
