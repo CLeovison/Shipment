@@ -1,28 +1,31 @@
 using System.Globalization;
 using CsvHelper;
 using Shipment.Abstract;
-using Shipment.Entities;
 using System.Security.Claims;
 
 namespace Shipment.Features.Shipments.UploadShipments;
 
-internal sealed class UploadShipmentHandler(UploadShipmentQueue queue, IHttpContextAccessor httpContext)
+internal sealed class UploadShipmentHandler(
+    UploadShipmentQueue queue, 
+    IHttpContextAccessor httpContext, 
+    UploadProgressStore progressStore,
+    ILogger<UploadShipmentHandler> logger) // Added logger
 {
     public async Task UploadShipmentAsync(IFormFile file, CancellationToken ct)
     {
-        // Capture authenticated user ID
-        var userIdClaim = httpContext.HttpContext?.User?
-                   .FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-
+        var userIdClaim = httpContext.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
             throw new InvalidOperationException("Cannot determine authenticated user.");
 
         var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HeaderValidated = null,
-            MissingFieldFound = null
+            MissingFieldFound = null,
+            PrepareHeaderForMatch = args => args.Header.Trim(), // Trim headers
         };
+
+        var uploadId = Guid.NewGuid();
+        var progress = progressStore.Create(uploadId);
 
         using var stream = file.OpenReadStream();
         using var reader = new StreamReader(stream);
@@ -30,15 +33,44 @@ internal sealed class UploadShipmentHandler(UploadShipmentQueue queue, IHttpCont
 
         csv.Context.RegisterClassMap<ShipmentCsvRecordMap>();
 
-        await foreach (var record in csv.GetRecordsAsync<ShipmentDetails>(ct))
+        var records = new List<ShipmentImportDto>();
+        
+        try 
         {
-            if (string.IsNullOrWhiteSpace(record.PurchaseOrderNumber))
-                continue;
-                
-            await queue.Writer.WriteAsync(record, ct);
+            await foreach (var record in csv.GetRecordsAsync<ShipmentCsvRecord>(ct))
+            {
+                if (string.IsNullOrWhiteSpace(record.PurchaseOrderNumber))
+                {
+                    logger.LogWarning("Skipping row with empty PurchaseOrderNumber at row {Row}", csv.Context.Parser.Row);
+                    continue;
+                }
+
+                records.Add(new ShipmentImportDto
+                {
+                    UserId = userId,
+                    PurchaseOrderNumber = record.PurchaseOrderNumber.Trim(),
+                    Vendor = record.Vendor?.Trim() ?? string.Empty,
+                    TimeOfArrival = record.TimeOfArrival ?? DateTime.UtcNow,
+                    UploadId = uploadId
+                });
+            }
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Error reading CSV at row {Row}", csv.Context.Parser.Row);
+            throw; // Re-throw to let the endpoint handle it
+        }
+
+        progress.Total = records.Count;
+        logger.LogInformation("Found {Count} valid records in CSV for UploadId {UploadId}", records.Count, uploadId);
+
+        foreach (var dto in records)
+        {
+            await queue.Writer.WriteAsync(dto, ct);
         }
     }
 }
+
 
 // Minimal API endpoint
 public sealed class UploadShipmentEndpoint : IEndpoint

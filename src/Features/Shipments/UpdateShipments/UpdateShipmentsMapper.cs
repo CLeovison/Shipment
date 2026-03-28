@@ -3,7 +3,7 @@ using Shipment.Entities;
 namespace Shipment.Features.Shipments.UpdateShipments;
 
 public record class UpdateShipmentRequest(
-    int ShipmentId,
+
     string PurchaseOrderNumber,
     string Vendor,
     DateTime TimeOfArrival,
@@ -21,7 +21,6 @@ public static class UpdateShipmentsMapper
 
     public static void ToEntity(this UpdateShipmentRequest request, ShipmentDetails details, string UpdatedBy)
     {
-        details.ShipmentId = request.ShipmentId;
         details.PurchaseOrderNumber = request.PurchaseOrderNumber;
         details.Vendor = request.Vendor;
         details.TimeOfArrival = request.TimeOfArrival;

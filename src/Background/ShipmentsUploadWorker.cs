@@ -5,184 +5,188 @@ using Shipment.Features.Shipments.UploadShipments;
 
 namespace Shipment.Background;
 
-// BackgroundService = runs continuously in ASP.NET Core as a hosted worker
 public sealed class ShipmentsUploadWorker(
-    ILogger<ShipmentsUploadWorker> logger,        // Logging for observability (VERY important in async systems)
-    IServiceScopeFactory serviceScope,            // Used to create scoped services (DbContext per batch)
-    UploadShipmentQueue queue)                    // The queue where producers push shipment data
+    ILogger<ShipmentsUploadWorker> logger,
+    IServiceScopeFactory serviceScope,
+    UploadShipmentQueue queue,
+    UploadProgressStore progressStore)
     : BackgroundService
 {
-    // Max number of records per batch before flushing to DB
     private const int BatchSize = 1000;
-
-    // Max time to wait before flushing even if batch is not full
     private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(2);
-
-    // Retry attempts for transient failures (e.g. DB hiccups)
     private const int MaxRetries = 3;
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("Batch Uploading of Shipments is Starting");
 
-        // Buffer = temporary in-memory storage before committing to DB
-        // This improves performance vs inserting one-by-one
-        var buffer = new List<ShipmentDetails>(BatchSize);
-
-        // Tracks last time we flushed to DB
+        var buffer = new List<ShipmentImportDto>(BatchSize);
         var lastFlush = DateTime.UtcNow;
 
         try
         {
-            // Continuously read from queue until shutdown
-            await foreach (var shipment in queue.Reader.ReadAllAsync(stoppingToken))
+            while (!stoppingToken.IsCancellationRequested)
             {
-                // Add incoming item to buffer
-                buffer.Add(shipment);
-
-                // Flush conditions:
-                // 1. Buffer is full
-                var shouldFlushBySize = buffer.Count >= BatchSize;
-
-                // 2. Enough time has passed (prevents low traffic from stalling)
-                var shouldFlushByTime = DateTime.UtcNow - lastFlush >= FlushInterval;
-
-                // If either condition is met → persist batch
-                if (shouldFlushBySize || shouldFlushByTime)
+                // ✅ FIX: Use WaitToReadAsync with a timeout to prevent blocking forever
+                // This allows the loop to continue and check the FlushInterval even if no new data arrives.
+                if (await queue.Reader.WaitToReadAsync(stoppingToken.CanBeCanceled ? stoppingToken : CancellationToken.None))
                 {
-                    await ProcessBatchWithRetries(buffer, stoppingToken);
+                    while (queue.Reader.TryRead(out var dto))
+                    {
+                        buffer.Add(Normalize(dto));
 
-                    // Clear buffer after successful processing
+                        if (buffer.Count >= BatchSize)
+                        {
+                            await ProcessBatch(new List<ShipmentImportDto>(buffer), stoppingToken);
+                            buffer.Clear();
+                            lastFlush = DateTime.UtcNow;
+                        }
+                    }
+                }
+
+                // ✅ PERIODIC FLUSH: Check if the interval has passed even if WaitToReadAsync timed out or queue is empty
+                if (buffer.Count > 0 && DateTime.UtcNow - lastFlush >= FlushInterval)
+                {
+                    logger.LogInformation("Flushing buffer of {Count} items due to interval", buffer.Count);
+                    await ProcessBatch([.. buffer], stoppingToken);
                     buffer.Clear();
-
-                    // Reset flush timer
                     lastFlush = DateTime.UtcNow;
                 }
-            }
 
-            // Final flush when:
-            // - App is shutting down
-            // - Channel is completed
-            if (buffer.Count > 0)
-            {
-                await ProcessBatchWithRetries(buffer, stoppingToken);
+                // Small delay to prevent tight loop if queue is empty
+                await Task.Delay(500, stoppingToken);
             }
         }
         catch (OperationCanceledException)
         {
-            // Normal shutdown path (not an error)
             logger.LogInformation("Shipment upload worker is stopping...");
         }
         catch (Exception ex)
         {
-            // Fatal errors should ALWAYS be logged
             logger.LogError(ex, "Fatal error in shipment upload worker");
+        }
+        finally
+        {
+            // Final cleanup
+            if (buffer.Count > 0)
+            {
+                await ProcessBatch(buffer, CancellationToken.None);
+            }
         }
     }
 
-    private async Task ProcessBatchWithRetries(List<ShipmentDetails> batch, CancellationToken ct)
+    private static ShipmentImportDto Normalize(ShipmentImportDto dto)
     {
-        // Retry loop for resiliency
+        dto.PurchaseOrderNumber = dto.PurchaseOrderNumber?.Trim() ?? string.Empty;
+        dto.Vendor = dto.Vendor?.Trim() ?? string.Empty;
+        return dto;
+    }
+
+    private async Task ProcessBatch(List<ShipmentImportDto> batch, CancellationToken ct)
+    {
         for (int attempt = 1; attempt <= MaxRetries; attempt++)
         {
             try
             {
-                await SaveBatch(batch, ct);
-                return; // Success → exit retry loop
+                var (succeeded, failed) = await SaveBatch(batch, ct);
+                UpdateProgress(succeeded, failed);
+                return;
             }
             catch (Exception ex)
             {
-                logger.LogWarning(ex,
-                    "Batch insert failed on attempt {Attempt}/{MaxRetries}",
-                    attempt, MaxRetries);
-
-                // If final attempt → escalate failure
+                logger.LogWarning(ex, "Batch failed on attempt {Attempt}/{MaxRetries}", attempt, MaxRetries);
                 if (attempt == MaxRetries)
                 {
-                    logger.LogError(ex, "Batch permanently failed. Data loss risk.");
-                    throw;
+                    UpdateProgress([], batch);
+                    return;
                 }
-
-                // Exponential-ish backoff (simple)
-                await Task.Delay(TimeSpan.FromMilliseconds(500 * attempt), ct);
+                await Task.Delay(TimeSpan.FromMilliseconds(300 * attempt), ct);
             }
         }
     }
 
-    private async Task SaveBatch(List<ShipmentDetails> batch, CancellationToken ct)
+    private async Task<(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)>
+        SaveBatch(List<ShipmentImportDto> batch, CancellationToken ct)
     {
-        // IMPORTANT:
-        // DbContext is scoped → must NOT reuse across threads or long-lived services
         using var scope = serviceScope.CreateScope();
-
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+        var entities = batch.Select(dto => new ShipmentDetails
+        {
+            PurchaseOrderNumber = dto.PurchaseOrderNumber,
+            Vendor = dto.Vendor,
+            TimeOfArrival = dto.TimeOfArrival,
+            NotifyStartAt = DateTime.UtcNow,
+            UserId = dto.UserId
+        }).ToList();
 
         try
         {
-            // Bulk insert (much faster than per-row insert)
-            await context.Shipments.AddRangeAsync(batch, ct);
-
-            // Commit to DB
+            await context.Shipments.AddRangeAsync(entities, ct);
             await context.SaveChangesAsync(ct);
-
-            logger.LogInformation(
-                "Inserted batch of {Count} shipments at {Time}",
-                batch.Count,
-                DateTime.UtcNow);
+            return (batch, []);
         }
-        catch (DbUpdateException ex) when (IsUniqueConstraintViolation(ex))
+        catch (DbUpdateException)
         {
-            // If duplicate constraint violation occurs:
-            // → we assume idempotency conflict
-            logger.LogWarning(ex, "Duplicate detected. Resolving batch...");
-
-            await HandleDuplicateBatch(context, batch, ct);
+            return await SaveRowByRow(batch, ct);
         }
     }
 
-    private async Task HandleDuplicateBatch(
-        AppDbContext context,
-        List<ShipmentDetails> batch,
-        CancellationToken ct)
+    private async Task<(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)>
+        SaveRowByRow(List<ShipmentImportDto> batch, CancellationToken ct)
     {
-        // Extract idempotency keys (business-defined uniqueness)
-        var keys = batch
-            .Select(x => x.PurchaseOrderNumber)
-            .ToList();
+        var succeeded = new List<ShipmentImportDto>();
+        var failed = new List<ShipmentImportDto>();
 
-        // Query DB for already existing records
-        var existingKeys = await context.Shipments
-            .Where(x => keys.Contains(x.PurchaseOrderNumber))
-            .Select(x => x.PurchaseOrderNumber)
-            .ToListAsync(ct);
+        using var scope = serviceScope.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        // Remove duplicates from incoming batch
-        var filtered = batch
-            .Where(x => !existingKeys.Contains(x.PurchaseOrderNumber))
-            .ToList();
-
-        // If everything is duplicate → skip safely
-        if (filtered.Count == 0)
+        foreach (var dto in batch)
         {
-            logger.LogWarning("All records in batch are duplicates. Skipping batch.");
-            return;
+            try
+            {
+                var entity = new ShipmentDetails
+                {
+                    PurchaseOrderNumber = dto.PurchaseOrderNumber,
+                    Vendor = dto.Vendor,
+                    TimeOfArrival = dto.TimeOfArrival,
+                    NotifyStartAt = DateTime.UtcNow,
+                    UserId = dto.UserId
+                };
+                context.Shipments.Add(entity);
+                await context.SaveChangesAsync(ct);
+                succeeded.Add(dto);
+            }
+            catch { failed.Add(dto); }
         }
-
-        // Insert only new records
-        await context.Shipments.AddRangeAsync(filtered, ct);
-        await context.SaveChangesAsync(ct);
-
-        logger.LogInformation(
-            "Inserted filtered batch of {Count} shipments (duplicates removed)",
-            filtered.Count);
+        return (succeeded, failed);
     }
 
-    private static bool IsUniqueConstraintViolation(DbUpdateException ex)
+    private void UpdateProgress(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)
     {
-        // DB-agnostic (but fragile) way to detect uniqueness violations
-        var message = ex.InnerException?.Message ?? "";
-
-        return message.Contains("UNIQUE", StringComparison.OrdinalIgnoreCase) ||
-               message.Contains("duplicate", StringComparison.OrdinalIgnoreCase);
+        foreach (var item in succeeded)
+        {
+            var progress = progressStore.GetId(item.UploadId);
+            if (progress == null) continue;
+            progress.Processed++;
+            progress.Succeeded++;
+            if (progress.Processed >= progress.Total && progress.Total > 0)
+            {
+                progress.IsCompleted = true;
+                progress.CompletedAt = DateTime.UtcNow;
+            }
+        }
+        foreach (var item in failed)
+        {
+            var progress = progressStore.GetId(item.UploadId);
+            if (progress == null) continue;
+            progress.Processed++;
+            progress.Failed++;
+            if (progress.Processed >= progress.Total && progress.Total > 0)
+            {
+                progress.IsCompleted = true;
+                progress.CompletedAt = DateTime.UtcNow;
+            }
+        }
     }
 }

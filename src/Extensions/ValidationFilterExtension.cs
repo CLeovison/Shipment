@@ -4,10 +4,17 @@ namespace Shipment.Extensions;
 
 public class ValidationFilter<TRequest>(IValidator<TRequest> validator) : IEndpointFilter
 {
-
     public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
     {
-        var request = context.GetArgument<TRequest>(0);
+        // Dynamically find the argument that matches the type TRequest
+        var request = context.Arguments.OfType<TRequest>().FirstOrDefault();
+
+        if (request is null)
+        {
+            // If the expected request type is not found, you might want to log this or return a 400.
+            // This can happen if the endpoint signature doesn't include TRequest.
+            return TypedResults.BadRequest($"Expected request of type {typeof(TRequest).Name} was not found in the endpoint arguments.");
+        }
 
         var result = await validator.ValidateAsync(request, context.HttpContext.RequestAborted);
 

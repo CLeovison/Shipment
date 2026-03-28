@@ -18,7 +18,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
 builder.Services.AddSingleton<UploadShipmentQueue>();
-
+builder.Services.AddSingleton<UploadProgressStore>();
 builder.Services.AddHostedService<ShipmentNoticeWorker>();
 builder.Services.AddHostedService<RefreshTokenWorker>();
 builder.Services.AddHostedService<ShipmentsUploadWorker>();
@@ -39,7 +39,7 @@ var app = builder.Build();
 app.UseRouting();
 app.UseCors();
 
-app.UseAuthentication(); 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.Endpoint();

@@ -86,6 +86,8 @@ public sealed class UpdateShipmentEndpoint : IEndpoint
                 var error = new Error("UnhandledException", $"Unexpected error: {ex.Message}");
                 return Results.Json(error, statusCode: 500);
             }
-        }).WithValidation<UpdateShipmentRequest>();
+        })
+        .RequireAuthorization()
+        .WithValidation<UpdateShipmentRequest>();
     }
 }
