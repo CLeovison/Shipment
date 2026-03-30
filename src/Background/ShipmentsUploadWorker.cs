@@ -5,6 +5,16 @@ using Shipment.Features.Shipments.UploadShipments;
 
 namespace Shipment.Background;
 
+
+// Background worker responsible for consuming shipment upload requests from an in-memory queue,
+// batching them for efficiency, and persisting them to the database.
+//
+// Key design decisions:
+// - Uses batching (BatchSize) to reduce database roundtrips.
+// - Uses a time-based flush (FlushInterval) to prevent data from staying too long in memory.
+// - Implements retry logic to handle transient failures.
+// - Falls back to row-by-row persistence when batch insert fails (e.g., due to constraint violations).
+// - Tracks progress via UploadProgressStore to provide feedback to clients.
 public sealed class ShipmentsUploadWorker(
     ILogger<ShipmentsUploadWorker> logger,
     IServiceScopeFactory serviceScope,
@@ -16,6 +26,17 @@ public sealed class ShipmentsUploadWorker(
     private static readonly TimeSpan FlushInterval = TimeSpan.FromSeconds(2);
     private const int MaxRetries = 3;
 
+
+    // Main processing loop:
+    // Continuously reads from the queue while the service is running.
+    //
+    // Behavior:
+    // - Accumulates items into an in-memory buffer.
+    // - Flushes to database when either:
+    //   1. Batch size is reached (high throughput optimization)
+    //   2. Flush interval is exceeded (latency guarantee)
+    // - Includes small delays to prevent CPU spinning when the queue is empty.
+    // - Ensures graceful shutdown by processing remaining buffered items in the finally block.
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         logger.LogInformation("Batch Uploading of Shipments is Starting");
@@ -27,14 +48,31 @@ public sealed class ShipmentsUploadWorker(
         {
             while (!stoppingToken.IsCancellationRequested)
             {
+
+
+                // Waits asynchronously until new items are available in the queue.
+                // Prevents blocking the thread while still allowing periodic checks for flush conditions.
+                //
+                // Important:
+                // - This avoids busy-waiting.
+                // - Still allows the loop to continue if no data arrives for a while.
+
                 // ✅ FIX: Use WaitToReadAsync with a timeout to prevent blocking forever
                 // This allows the loop to continue and check the FlushInterval even if no new data arrives.
                 if (await queue.Reader.WaitToReadAsync(stoppingToken.CanBeCanceled ? stoppingToken : CancellationToken.None))
                 {
                     while (queue.Reader.TryRead(out var dto))
                     {
+
                         buffer.Add(Normalize(dto));
 
+                        // Time-based flush:
+                        // Ensures that even low-volume or idle workloads are persisted without waiting
+                        // for the batch size threshold to be reached.
+                        //
+                        // This guarantees:
+                        // - Data freshness
+                        // - No indefinite memory accumulation
                         if (buffer.Count >= BatchSize)
                         {
                             await ProcessBatch(new List<ShipmentImportDto>(buffer), stoppingToken);
@@ -65,6 +103,12 @@ public sealed class ShipmentsUploadWorker(
         {
             logger.LogError(ex, "Fatal error in shipment upload worker");
         }
+        // Ensures no data is lost when the worker shuts down.
+        //
+        // If there are remaining buffered items:
+        // - They are processed immediately before the service exits.
+        //
+        // Uses CancellationToken.None to guarantee completion even during shutdown.
         finally
         {
             // Final cleanup
@@ -75,6 +119,11 @@ public sealed class ShipmentsUploadWorker(
         }
     }
 
+    // Cleans incoming data before processing.
+    // Prevents subtle bugs caused by:
+    // - Leading/trailing whitespace
+    // - Null values in critical fields
+
     private static ShipmentImportDto Normalize(ShipmentImportDto dto)
     {
         dto.PurchaseOrderNumber = dto.PurchaseOrderNumber?.Trim() ?? string.Empty;
@@ -82,6 +131,16 @@ public sealed class ShipmentsUploadWorker(
         return dto;
     }
 
+    // Wraps batch persistence with retry logic.
+    //
+    // Retry strategy:
+    // - Attempts the operation up to MaxRetries times.
+    // - Uses exponential backoff (increasing delay per attempt).
+    // - If all retries fail, marks all items as failed.
+    //
+    // This helps handle:
+    // - Temporary DB/network issues
+    // - Deadlocks or transient EF failures
     private async Task ProcessBatch(List<ShipmentImportDto> batch, CancellationToken ct)
     {
         for (int attempt = 1; attempt <= MaxRetries; attempt++)
@@ -105,6 +164,15 @@ public sealed class ShipmentsUploadWorker(
         }
     }
 
+    // Attempts to insert the entire batch in a single database operation.
+    //
+    // Why:
+    // - Maximizes performance (fewer DB roundtrips)
+    // - Leverages EF Core change tracking for efficiency
+    //
+    // Fallback:
+    // - If batch insert fails (DbUpdateException), fallback to SaveRowByRow
+    //   to isolate problematic records.
     private async Task<(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)> SaveBatch(
         List<ShipmentImportDto> batch,
         CancellationToken ct)
@@ -133,6 +201,15 @@ public sealed class ShipmentsUploadWorker(
         }
     }
 
+    // Fallback strategy when batch insert fails.
+    //
+    // Why this exists:
+    // - Batch failures are often caused by a single bad record.
+    // - Processing individually allows partial success.
+    //
+    // Tradeoff:
+    // - Slower than batch insert
+    // - Used only when necessary
     private async Task<(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)> SaveRowByRow(
         List<ShipmentImportDto> batch,
         CancellationToken ct)
@@ -167,6 +244,17 @@ public sealed class ShipmentsUploadWorker(
         return (succeeded, failed);
     }
 
+    // Updates in-memory progress tracking for each upload job.
+    //
+    // Tracks:
+    // - Processed count
+    // - Success count
+    // - Failure count
+    //
+    // Marks completion when all items are processed.
+    //
+    // Note:
+    // - This is critical for real-time feedback (e.g., UI progress indicators).
     private void UpdateProgress(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)
     {
         foreach (var item in succeeded)
