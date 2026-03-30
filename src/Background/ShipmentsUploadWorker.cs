@@ -105,8 +105,9 @@ public sealed class ShipmentsUploadWorker(
         }
     }
 
-    private async Task<(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)>
-        SaveBatch(List<ShipmentImportDto> batch, CancellationToken ct)
+    private async Task<(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)> SaveBatch(
+        List<ShipmentImportDto> batch,
+        CancellationToken ct)
     {
         using var scope = serviceScope.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -116,7 +117,7 @@ public sealed class ShipmentsUploadWorker(
             PurchaseOrderNumber = dto.PurchaseOrderNumber,
             Vendor = dto.Vendor,
             TimeOfArrival = dto.TimeOfArrival,
-            NotifyStartAt = DateTime.UtcNow,
+            NotifyStartAt = dto.TimeOfArrival.AddDays(-14),
             UserId = dto.UserId
         }).ToList();
 
@@ -132,8 +133,9 @@ public sealed class ShipmentsUploadWorker(
         }
     }
 
-    private async Task<(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)>
-        SaveRowByRow(List<ShipmentImportDto> batch, CancellationToken ct)
+    private async Task<(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)> SaveRowByRow(
+        List<ShipmentImportDto> batch,
+        CancellationToken ct)
     {
         var succeeded = new List<ShipmentImportDto>();
         var failed = new List<ShipmentImportDto>();
@@ -150,14 +152,17 @@ public sealed class ShipmentsUploadWorker(
                     PurchaseOrderNumber = dto.PurchaseOrderNumber,
                     Vendor = dto.Vendor,
                     TimeOfArrival = dto.TimeOfArrival,
-                    NotifyStartAt = DateTime.UtcNow,
+                    NotifyStartAt = dto.TimeOfArrival.AddDays(-14),
                     UserId = dto.UserId
                 };
                 context.Shipments.Add(entity);
                 await context.SaveChangesAsync(ct);
                 succeeded.Add(dto);
             }
-            catch { failed.Add(dto); }
+            catch
+            {
+                failed.Add(dto);
+            }
         }
         return (succeeded, failed);
     }

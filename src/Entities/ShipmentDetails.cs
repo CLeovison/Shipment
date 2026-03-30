@@ -9,7 +9,7 @@ public class ShipmentDetails : AuditableEntity
     public string Vendor { get; set; } = string.Empty;
     public DateTime TimeOfArrival { get; set; }
 
-    public DateTime NotifyStartAt { get; set; }
+    public DateTime? NotifyStartAt { get; set; }
     public DateTime? LastNotifiedAt { get; set; }
     public bool IsCompleted { get; set; } = false;
 

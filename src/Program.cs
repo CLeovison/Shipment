@@ -19,6 +19,7 @@ builder.Services.AddEndpoints(Assembly.GetExecutingAssembly());
 
 builder.Services.AddSingleton<UploadShipmentQueue>();
 builder.Services.AddSingleton<UploadProgressStore>();
+
 builder.Services.AddHostedService<ShipmentNoticeWorker>();
 builder.Services.AddHostedService<RefreshTokenWorker>();
 builder.Services.AddHostedService<ShipmentsUploadWorker>();

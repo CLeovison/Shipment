@@ -17,6 +17,7 @@ internal sealed class UploadShipmentHandler(
         if (string.IsNullOrWhiteSpace(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
             throw new InvalidOperationException("Cannot determine authenticated user.");
 
+
         var config = new CsvHelper.Configuration.CsvConfiguration(CultureInfo.InvariantCulture)
         {
             HeaderValidated = null,
@@ -41,7 +42,7 @@ internal sealed class UploadShipmentHandler(
             {
                 if (string.IsNullOrWhiteSpace(record.PurchaseOrderNumber))
                 {
-                    logger.LogWarning("Skipping row with empty PurchaseOrderNumber at row {Row}", csv.Context.Parser.Row);
+                    logger.LogWarning("Skipping row with empty PurchaseOrderNumber at row {Row}", csv.Context.Parser?.Row ?? 0);
                     continue;
                 }
 
@@ -57,7 +58,7 @@ internal sealed class UploadShipmentHandler(
         }
         catch (Exception ex)
         {
-            logger.LogError(ex, "Error reading CSV at row {Row}", csv.Context.Parser.Row);
+            logger.LogError(ex, "Error reading CSV at row {Row}", csv.Context.Parser?.Row ?? 0);
             throw; // Re-throw to let the endpoint handle it
         }
 
@@ -71,8 +72,6 @@ internal sealed class UploadShipmentHandler(
     }
 }
 
-
-// Minimal API endpoint
 public sealed class UploadShipmentEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)

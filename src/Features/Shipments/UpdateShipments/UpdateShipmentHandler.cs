@@ -1,6 +1,7 @@
 
+
+using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Shipment.Abstract;
 using Shipment.Abstract.Results;
 using Shipment.Abstract.Results.Errors;
@@ -9,7 +10,7 @@ using Shipment.Extensions;
 
 namespace Shipment.Features.Shipments.UpdateShipments;
 
-internal sealed class UpdateShipmentHandler(AppDbContext dbContext)
+internal sealed class UpdateShipmentHandler(AppDbContext dbContext, IHttpContextAccessor httpContext)
 {
     public async Task<Result<UpdateShipmentResponse>> UpdateShipmentsAsync(int id, UpdateShipmentRequest request, CancellationToken ct)
     {
@@ -22,22 +23,24 @@ internal sealed class UpdateShipmentHandler(AppDbContext dbContext)
                 return Result.Failure<UpdateShipmentResponse>(Error.NullValue);
             }
 
+            var updateUser = httpContext.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            var updateUser = await dbContext.Users
-                .Where(x => x.UserId == request.UserId)
-                .Select(x => x.FirstName)
-                .FirstOrDefaultAsync(ct);
-
-            if (updateUser is null)
+            if (string.IsNullOrWhiteSpace(updateUser) || !int.TryParse(updateUser, out var userId))
             {
                 return Result.Failure<UpdateShipmentResponse>(Error.NullValue);
             }
 
             request.ToEntity(existing, updateUser);
+            existing.UserId = userId;
+
+
+            var userName = httpContext.HttpContext?.User?
+                     .FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+
 
             await dbContext.SaveChangesAsync(ct);
 
-            var response = existing.ToResponse(updateUser);
+            var response = existing.ToResponse(userName);
             return Result.Success(response);
         }
         catch (Exception ex)

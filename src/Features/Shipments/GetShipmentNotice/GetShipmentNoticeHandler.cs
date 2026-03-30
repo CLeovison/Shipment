@@ -3,6 +3,8 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Abstract;
 using Shipment.Database;
+using Shipment.Entities;
+using Shipment.Entities.Shared;
 using Shipment.Hubs;
 
 namespace Shipment.Features.Shipments.GetShipmentNotice;
@@ -21,85 +23,64 @@ public sealed record ShipmentProjection(
 internal sealed class GetShipmentNoticeHandler(
     AppDbContext dbContext,
     IHubContext<ShipmentNotificationHub, IShipmentClient> hub,
-    IHttpContextAccessor httpContext)
+    IHttpContextAccessor httpContext,
+    ILogger<GetShipmentNoticeHandler> logger)
 {
     private const int NoticeDays = 14;
 
     public async Task<IReadOnlyList<GetShipmentNoticeResponse>> GetNoticeShipmentAsync(CancellationToken ct)
     {
         var userId = GetUserId();
+
         if (userId is null)
-            return Array.Empty<GetShipmentNoticeResponse>();
-
-        var today = DateTime.UtcNow.Date;
-        var noticeWindowEnd = today.AddDays(NoticeDays);
-
-        // Query shipments within notification window that are not completed
-        var shipments = await dbContext.Shipments
-            .Where(x =>
-                x.UserId == userId.Value &&
-                !x.IsCompleted &&
-                x.NotifyStartAt <= today &&
-                x.TimeOfArrival >= today &&
-                (x.LastNotifiedAt == null || x.LastNotifiedAt.Value.Date < today))
-            .OrderBy(x => x.TimeOfArrival)
-            .AsNoTracking()
-            .Select(x => new ShipmentProjection(
-                x.PurchaseOrderNumber,
-                x.Vendor,
-                x.TimeOfArrival))
-            .ToListAsync(ct);
-
-        var response = MapToResponse(shipments, today);
-
-        // Send SignalR notification for today
-        if (response.Count > 0)
         {
-            await hub.Clients.User(userId.Value.ToString())
-                .ShipmentArrivalNotice(response);
-
-            // Update LastNotifiedAt for these shipments
-            var updateList = await dbContext.Shipments
-                .Where(x =>
-                    x.UserId == userId.Value &&
-                    !x.IsCompleted &&
-                    x.NotifyStartAt <= today &&
-                    x.TimeOfArrival >= today &&
-                    (x.LastNotifiedAt == null || x.LastNotifiedAt.Value.Date < today))
-                .ToListAsync(ct);
-
-            foreach (var shipment in updateList)
-            {
-                shipment.LastNotifiedAt = DateTime.UtcNow;
-
-                //Mark Completed if Arrival Date Passed
-                if (shipment.TimeOfArrival.Date <= today)
-                {
-                    shipment.IsCompleted = true;
-                }
-            }
-
-            await dbContext.SaveChangesAsync(ct);
+            logger.LogWarning("No user ID found in claims");
+            return Array.Empty<GetShipmentNoticeResponse>();
         }
 
-        return response;
-    }
+        var today = DateTime.UtcNow.Date;
 
-    private int? GetUserId()
-    {
-        var value = httpContext.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
-        return int.TryParse(value, out var id) ? id : null;
-    }
+        var shipments = await dbContext.Shipments
+            .Where(x => x.UserId == userId)
+            .ForNotifications(today, NoticeDays)
+            .OrderBy(x => x.TimeOfArrival)
+            .ToListAsync(ct);
 
-    private static IReadOnlyList<GetShipmentNoticeResponse> MapToResponse(IEnumerable<ShipmentProjection> shipments, DateTime today)
-    {
-        return shipments
+        logger.LogInformation("Handler found {Count} shipments", shipments.Count);
+
+        if (shipments.Count == 0)
+            return Array.Empty<GetShipmentNoticeResponse>();
+
+        var response = shipments
             .Select(x => new GetShipmentNoticeResponse(
                 x.PurchaseOrderNumber,
                 x.Vendor,
                 x.TimeOfArrival,
                 (x.TimeOfArrival.Date - today).Days))
             .ToList();
+
+        await hub.Clients.User(userId.Value.ToString())
+            .ShipmentArrivalNotice(response);
+
+        foreach (var shipment in shipments)
+        {
+            shipment.LastNotifiedAt = DateTime.UtcNow;
+
+            if (shipment.TimeOfArrival.Date < today)
+                shipment.IsCompleted = true;
+        }
+
+        await dbContext.SaveChangesAsync(ct);
+
+        return response;
+    }
+
+    private int? GetUserId()
+    {
+        var value = httpContext.HttpContext?.User?
+            .FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+        return int.TryParse(value, out var id) ? id : null;
     }
 }
 
@@ -111,6 +92,6 @@ public sealed class GetNoticeShipmentEndpoint : IEndpoint
         {
             var result = await handler.GetNoticeShipmentAsync(ct);
             return Results.Ok(result);
-        });
+        }).RequireAuthorization();
     }
 }

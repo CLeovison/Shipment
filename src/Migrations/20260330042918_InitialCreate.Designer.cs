@@ -12,7 +12,7 @@ using Shipment.Database;
 namespace Shipment.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260320064248_InitialCreate")]
+    [Migration("20260330042918_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -87,7 +87,7 @@ namespace Shipment.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<DateTime>("NotifyStartAt")
+                    b.Property<DateTime?>("NotifyStartAt")
                         .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("PurchaseOrderNumber")
@@ -96,7 +96,7 @@ namespace Shipment.Migrations
                         .HasColumnType("character varying(100)");
 
                     b.Property<DateTime>("TimeOfArrival")
-                        .HasColumnType("date");
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<int>("UserId")
                         .HasColumnType("integer");
