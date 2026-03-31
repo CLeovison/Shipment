@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using Shipment.Abstract;
 using Shipment.Abstract.Messaging;
 using Shipment.Auth;
+using Shipment.Background;
 using Shipment.Entities;
 
 using Shipment.Features.Auth.Login;
@@ -133,6 +134,14 @@ public static class ServiceExtensions
                   .WithOrigins("http://127.0.0.1:5500"));
         });
 
+        return services;
+    }
+
+    public static IServiceCollection AddHostedServices(this IServiceCollection services)
+    {
+        services.AddHostedService<ShipmentNoticeWorker>();
+        services.AddHostedService<RefreshTokenWorker>();
+        services.AddHostedService<ShipmentsUploadWorker>();
         return services;
     }
 }
