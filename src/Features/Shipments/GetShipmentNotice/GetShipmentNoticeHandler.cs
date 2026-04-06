@@ -1,9 +1,7 @@
 using System.Security.Claims;
-using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Abstract;
 using Shipment.Database;
-using Shipment.Hubs;
 
 namespace Shipment.Features.Shipments.GetShipmentNotice;
 
@@ -15,8 +13,7 @@ public sealed record GetShipmentNoticeResponse(
 
 internal sealed class GetShipmentNoticeHandler(
     AppDbContext db,
-    IHttpContextAccessor http,
-    ILogger<GetShipmentNoticeHandler> logger)
+    IHttpContextAccessor http)
 {
     private const int NoticeDays = 14;
 
@@ -25,11 +22,11 @@ internal sealed class GetShipmentNoticeHandler(
         var userId = GetUserId();
         if (userId is null) return [];
 
-        var today = DateTime.UtcNow.Date;
+        // ✅ FIX: Use PH time
+        var today = DateTime.UtcNow.AddHours(8).Date;
 
         var shipments = await db.Shipments
             .Where(x => x.UserId == userId &&
-                        !x.IsCompleted &&
                         x.TimeOfArrival >= today &&
                         x.TimeOfArrival <= today.AddDays(NoticeDays))
             .OrderBy(x => x.TimeOfArrival)
@@ -39,7 +36,8 @@ internal sealed class GetShipmentNoticeHandler(
             x.PurchaseOrderNumber,
             x.Vendor,
             x.TimeOfArrival,
-            (x.TimeOfArrival - today).Days)).ToList();
+            (x.TimeOfArrival.Date - today).Days
+        )).ToList();
     }
 
     private int? GetUserId()

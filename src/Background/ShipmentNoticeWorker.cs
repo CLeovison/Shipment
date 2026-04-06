@@ -37,11 +37,12 @@ public class ShipmentNoticeWorker(
         using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var now = DateTime.UtcNow;
-        var throttle = TimeSpan.FromMinutes(2);
+        // ✅ FIX: Use PH time
+        var now = DateTime.UtcNow.AddHours(8);
+        var today = now.Date;
 
         var shipment = await db.Shipments
-            .ForNotifications(now, NoticeDays, throttle)
+            .ForNotifications(now, NoticeDays, TimeSpan.FromMinutes(2))
             .OrderBy(x => x.LastNotifiedAt ?? DateTime.MinValue)
             .ThenBy(x => x.TimeOfArrival)
             .FirstOrDefaultAsync(ct);
@@ -49,15 +50,11 @@ public class ShipmentNoticeWorker(
         if (shipment is null)
             return;
 
-        // Persist FIRST (avoid duplicates)
         shipment.LastNotifiedAt = now;
-
-        if (shipment.TimeOfArrival < now.Date)
-            shipment.IsCompleted = true;
 
         await db.SaveChangesAsync(ct);
 
-        var daysRemaining = (shipment.TimeOfArrival - now.Date).Days;
+        var daysRemaining = (shipment.TimeOfArrival.Date - today).Days;
 
         await hub.Clients.User(shipment.UserId.ToString())
             .SendAsync(

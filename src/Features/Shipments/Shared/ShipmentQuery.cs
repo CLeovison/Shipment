@@ -6,30 +6,31 @@ public static class ShipmentNotificationQuery
 {
     public static IQueryable<ShipmentDetails> ForNotifications(
         this IQueryable<ShipmentDetails> query,
-        DateTime nowUtc,
+        DateTime nowLocal,
         int noticeDays,
         TimeSpan throttleInterval)
     {
-        var windowEnd = nowUtc.Date.AddDays(noticeDays);
+        var today = nowLocal.Date;
+        var windowEnd = today.AddDays(noticeDays);
 
         return query.Where(x =>
-            // 1. Not completed
-            !x.IsCompleted &&
+            // 1. NOT completed (derived, NOT stored)
+            x.TimeOfArrival > nowLocal &&
 
-            // 2. Within arrival window (date-based)
-            x.TimeOfArrival >= nowUtc.Date &&
+            // 2. Within window
+            x.TimeOfArrival >= today &&
             x.TimeOfArrival <= windowEnd &&
 
-            // 3. Notification has started
+            // 3. Notification start
             (
                 x.NotifyStartAt == null ||
-                x.NotifyStartAt <= nowUtc
+                x.NotifyStartAt <= nowLocal
             ) &&
 
-            // 4. Throttle (critical)
+            // 4. Throttle
             (
                 x.LastNotifiedAt == null ||
-                nowUtc - x.LastNotifiedAt >= throttleInterval
+                nowLocal - x.LastNotifiedAt >= throttleInterval
             )
         );
     }
