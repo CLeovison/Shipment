@@ -8,6 +8,6 @@ public sealed class ShipmentCsvRecordMap : ClassMap<ShipmentCsvRecord>
     {
         Map(m => m.PurchaseOrderNumber).Name("PurchaseOrderNumber");
         Map(m => m.Vendor).Name("Vendor");
-        Map(m => m.TimeOfArrival).Name("TimeOfArrival").Default(DateTime.MinValue);;
+        Map(m => m.TimeOfArrival).Name("TimeOfArrival").Default(DateTime.MinValue);
     }
 }

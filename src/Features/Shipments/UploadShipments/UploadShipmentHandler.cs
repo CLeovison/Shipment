@@ -2,12 +2,13 @@ using System.Globalization;
 using CsvHelper;
 using Shipment.Abstract;
 using System.Security.Claims;
+using Shipment.Features.Shipments.Shared;
 
 namespace Shipment.Features.Shipments.UploadShipments;
 
 internal sealed class UploadShipmentHandler(
-    UploadShipmentQueue queue, 
-    IHttpContextAccessor httpContext, 
+    UploadShipmentQueue queue,
+    IHttpContextAccessor httpContext,
     UploadProgressStore progressStore,
     ILogger<UploadShipmentHandler> logger) // Added logger
 {
@@ -35,23 +36,20 @@ internal sealed class UploadShipmentHandler(
         csv.Context.RegisterClassMap<ShipmentCsvRecordMap>();
 
         var records = new List<ShipmentImportDto>();
-        
-        try 
+
+        try
         {
             await foreach (var record in csv.GetRecordsAsync<ShipmentCsvRecord>(ct))
             {
                 if (string.IsNullOrWhiteSpace(record.PurchaseOrderNumber))
-                {
-                    logger.LogWarning("Skipping row with empty PurchaseOrderNumber at row {Row}", csv.Context.Parser?.Row ?? 0);
                     continue;
-                }
 
                 records.Add(new ShipmentImportDto
                 {
                     UserId = userId,
                     PurchaseOrderNumber = record.PurchaseOrderNumber.Trim(),
                     Vendor = record.Vendor?.Trim() ?? string.Empty,
-                    TimeOfArrival = record.TimeOfArrival ?? DateTime.UtcNow,
+                    TimeOfArrival = DateHelper.ToUtcDate(record.TimeOfArrival),
                     UploadId = uploadId
                 });
             }

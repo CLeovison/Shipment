@@ -1,76 +1,71 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Database;
-using Shipment.Entities.Shared;
+using Shipment.Features.Shipments.Shared;
 using Shipment.Hubs;
 
 namespace Shipment.Background;
 
 public class ShipmentNoticeWorker(
     ILogger<ShipmentNoticeWorker> logger,
-    IServiceScopeFactory serviceScope,
+    IServiceScopeFactory scopeFactory,
     IHubContext<ShipmentNotificationHub> hub)
     : BackgroundService
 {
     private const int NoticeDays = 14;
+    private static readonly TimeSpan Interval = TimeSpan.FromMinutes(2);
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        logger.LogInformation("Shipment notice worker started");
+        using var timer = new PeriodicTimer(Interval);
 
-        while (!stoppingToken.IsCancellationRequested)
+        while (await timer.WaitForNextTickAsync(stoppingToken))
         {
             try
             {
-                await ProcessShipmentNotifications(stoppingToken);
+                await Process(stoppingToken);
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error processing shipment notifications");
+                logger.LogError(ex, "Worker error");
             }
-
-            await Task.Delay(TimeSpan.FromDays(1), stoppingToken);
         }
     }
 
-    private async Task ProcessShipmentNotifications(CancellationToken ct)
+    private async Task Process(CancellationToken ct)
     {
-        using var scope = serviceScope.CreateScope();
+        using var scope = scopeFactory.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        var today = DateTime.UtcNow.Date;
+        var now = DateTime.UtcNow;
+        var throttle = TimeSpan.FromMinutes(2);
 
-        var shipments = await db.Shipments
-            .ForNotifications(today, NoticeDays)
-            .ToListAsync(ct);
+        var shipment = await db.Shipments
+            .ForNotifications(now, NoticeDays, throttle)
+            .OrderBy(x => x.LastNotifiedAt ?? DateTime.MinValue)
+            .ThenBy(x => x.TimeOfArrival)
+            .FirstOrDefaultAsync(ct);
 
-        if (shipments.Count == 0)
-        {
-            logger.LogInformation("No shipment notifications for {Today}", today);
+        if (shipment is null)
             return;
-        }
 
-        logger.LogInformation("Worker processing {Count} shipments", shipments.Count);
+        // Persist FIRST (avoid duplicates)
+        shipment.LastNotifiedAt = now;
 
-        foreach (var shipment in shipments)
-        {
-            var daysRemaining = (shipment.TimeOfArrival.Date - today).Days;
-
-            await hub.Clients.User(shipment.UserId.ToString())
-                .SendAsync(
-                    "ShipmentArrivingSoon",
-                    shipment.PurchaseOrderNumber,
-                    shipment.Vendor,
-                    shipment.TimeOfArrival,
-                    daysRemaining,
-                    ct);
-
-            shipment.LastNotifiedAt = DateTime.UtcNow;
-
-            if (shipment.TimeOfArrival.Date < today)
-                shipment.IsCompleted = true;
-        }
+        if (shipment.TimeOfArrival < now.Date)
+            shipment.IsCompleted = true;
 
         await db.SaveChangesAsync(ct);
+
+        var daysRemaining = (shipment.TimeOfArrival - now.Date).Days;
+
+        await hub.Clients.User(shipment.UserId.ToString())
+            .SendAsync(
+                "ShipmentArrivingSoon",
+                shipment.PurchaseOrderNumber,
+                shipment.Vendor,
+                shipment.TimeOfArrival,
+                daysRemaining,
+                ct);
     }
 }

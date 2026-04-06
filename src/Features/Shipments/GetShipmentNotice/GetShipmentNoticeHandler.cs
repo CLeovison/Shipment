@@ -3,8 +3,6 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Abstract;
 using Shipment.Database;
-using Shipment.Entities;
-using Shipment.Entities.Shared;
 using Shipment.Hubs;
 
 namespace Shipment.Features.Shipments.GetShipmentNotice;
@@ -15,69 +13,38 @@ public sealed record GetShipmentNoticeResponse(
     DateTime TimeOfArrival,
     int DaysRemaining);
 
-public sealed record ShipmentProjection(
-    string PurchaseOrderNumber,
-    string Vendor,
-    DateTime TimeOfArrival);
-
 internal sealed class GetShipmentNoticeHandler(
-    AppDbContext dbContext,
-    IHubContext<ShipmentNotificationHub, IShipmentClient> hub,
-    IHttpContextAccessor httpContext,
+    AppDbContext db,
+    IHttpContextAccessor http,
     ILogger<GetShipmentNoticeHandler> logger)
 {
     private const int NoticeDays = 14;
 
-    public async Task<IReadOnlyList<GetShipmentNoticeResponse>> GetNoticeShipmentAsync(CancellationToken ct)
+    public async Task<IReadOnlyList<GetShipmentNoticeResponse>> Handle(CancellationToken ct)
     {
         var userId = GetUserId();
-
-        if (userId is null)
-        {
-            logger.LogWarning("No user ID found in claims");
-            return Array.Empty<GetShipmentNoticeResponse>();
-        }
+        if (userId is null) return [];
 
         var today = DateTime.UtcNow.Date;
 
-        var shipments = await dbContext.Shipments
-            .Where(x => x.UserId == userId)
-            .ForNotifications(today, NoticeDays)
+        var shipments = await db.Shipments
+            .Where(x => x.UserId == userId &&
+                        !x.IsCompleted &&
+                        x.TimeOfArrival >= today &&
+                        x.TimeOfArrival <= today.AddDays(NoticeDays))
             .OrderBy(x => x.TimeOfArrival)
             .ToListAsync(ct);
 
-        logger.LogInformation("Handler found {Count} shipments", shipments.Count);
-
-        if (shipments.Count == 0)
-            return Array.Empty<GetShipmentNoticeResponse>();
-
-        var response = shipments
-            .Select(x => new GetShipmentNoticeResponse(
-                x.PurchaseOrderNumber,
-                x.Vendor,
-                x.TimeOfArrival,
-                (x.TimeOfArrival.Date - today).Days))
-            .ToList();
-
-        await hub.Clients.User(userId.Value.ToString())
-            .ShipmentArrivalNotice(response);
-
-        foreach (var shipment in shipments)
-        {
-            shipment.LastNotifiedAt = DateTime.UtcNow;
-
-            if (shipment.TimeOfArrival.Date < today)
-                shipment.IsCompleted = true;
-        }
-
-        await dbContext.SaveChangesAsync(ct);
-
-        return response;
+        return shipments.Select(x => new GetShipmentNoticeResponse(
+            x.PurchaseOrderNumber,
+            x.Vendor,
+            x.TimeOfArrival,
+            (x.TimeOfArrival - today).Days)).ToList();
     }
 
     private int? GetUserId()
     {
-        var value = httpContext.HttpContext?.User?
+        var value = http.HttpContext?.User?
             .FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         return int.TryParse(value, out var id) ? id : null;
@@ -88,10 +55,12 @@ public sealed class GetNoticeShipmentEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/v1/shipments/notice", async (GetShipmentNoticeHandler handler, CancellationToken ct) =>
-        {
-            var result = await handler.GetNoticeShipmentAsync(ct);
-            return Results.Ok(result);
-        }).RequireAuthorization();
+        app.MapGet("/api/v1/shipments/notice",
+            async (GetShipmentNoticeHandler handler, CancellationToken ct) =>
+            {
+                var result = await handler.Handle(ct);
+                return Results.Ok(result);
+            })
+        .RequireAuthorization();
     }
 }
