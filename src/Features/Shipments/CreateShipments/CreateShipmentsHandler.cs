@@ -1,4 +1,3 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
@@ -28,7 +27,11 @@ internal sealed class CreateShipmentHandler(
             return Result.Failure<CreateShipmentResponse>(Error.Unauthorized);
         }
 
+        var arrival = EnsureUtc(shipment.TimeOfArrival);
+
         shipment.UserId = userId;
+        shipment.TimeOfArrival = arrival;
+        shipment.NotifyStartAt = arrival.AddDays(-14);
 
         var duplicateExists = await dbContext.Shipments
             .AnyAsync(x => x.PurchaseOrderNumber == shipment.PurchaseOrderNumber, ct);
@@ -47,6 +50,15 @@ internal sealed class CreateShipmentHandler(
         await hub.Clients.User(userId.ToString()).ShipmentCreated(response);
 
         return Result.Success(response);
+    }
+
+    private static DateTime EnsureUtc(DateTime date)
+    {
+        var withTime = date.TimeOfDay == TimeSpan.Zero
+            ? date.Date.AddHours(8)
+            : date;
+
+        return DateTime.SpecifyKind(withTime, DateTimeKind.Utc);
     }
 }
 

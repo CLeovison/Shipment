@@ -14,24 +14,10 @@ public static class ShipmentNotificationQuery
         var windowEnd = today.AddDays(noticeDays);
 
         return query.Where(x =>
-            // 1. NOT completed (derived, NOT stored)
             x.TimeOfArrival > nowLocal &&
-
-            // 2. Within window
-            x.TimeOfArrival >= today &&
-            x.TimeOfArrival <= windowEnd &&
-
-            // 3. Notification start
-            (
-                x.NotifyStartAt == null ||
-                x.NotifyStartAt <= nowLocal
-            ) &&
-
-            // 4. Throttle
-            (
-                x.LastNotifiedAt == null ||
-                nowLocal - x.LastNotifiedAt >= throttleInterval
-            )
+            x.TimeOfArrival >= today && x.TimeOfArrival <= windowEnd &&
+            (x.NotifyStartAt == null || x.NotifyStartAt <= nowLocal) &&
+            (x.LastNotifiedAt == null || nowLocal - x.LastNotifiedAt >= throttleInterval)
         );
     }
 }

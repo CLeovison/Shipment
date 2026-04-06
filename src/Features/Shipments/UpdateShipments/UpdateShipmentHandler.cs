@@ -30,8 +30,13 @@ internal sealed class UpdateShipmentHandler(AppDbContext dbContext, IHttpContext
                 return Result.Failure<UpdateShipmentResponse>(Error.NullValue);
             }
 
+
             request.ToEntity(existing, updateUser);
+
             existing.UserId = userId;
+
+            var arrival = EnsureUtc(existing.TimeOfArrival);
+            existing.NotifyStartAt = arrival.AddDays(-14);
 
 
             var userName = httpContext.HttpContext?.User?
@@ -51,8 +56,15 @@ internal sealed class UpdateShipmentHandler(AppDbContext dbContext, IHttpContext
 
         }
     }
-}
+    private static DateTime EnsureUtc(DateTime date)
+    {
+        var withTime = date.TimeOfDay == TimeSpan.Zero
+            ? date.Date.AddHours(8)
+            : date;
 
+        return DateTime.SpecifyKind(TimeZoneInfo.ConvertTimeToUtc(withTime), DateTimeKind.Utc);
+    }
+}
 
 public sealed class UpdateShipmentEndpoint : IEndpoint
 {
