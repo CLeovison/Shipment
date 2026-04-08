@@ -16,6 +16,7 @@ internal sealed class UpdateShipmentHandler(AppDbContext dbContext, IHttpContext
     {
         try
         {
+            
             var existing = await dbContext.Shipments.FindAsync(id, ct);
 
             if (existing is null)

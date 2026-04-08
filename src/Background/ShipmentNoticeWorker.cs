@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Database;
+using Shipment.Entities;
 using Shipment.Features.Shipments.Shared;
 using Shipment.Hubs;
 
@@ -41,28 +42,31 @@ public class ShipmentNoticeWorker(
         var now = DateTime.UtcNow.AddHours(8);
         var today = now.Date;
 
-        var shipment = await db.Shipments
-            .ForNotifications(now, NoticeDays, TimeSpan.FromMinutes(2))
-            .OrderBy(x => x.LastNotifiedAt ?? DateTime.MinValue)
-            .ThenBy(x => x.TimeOfArrival)
-            .FirstOrDefaultAsync(ct);
+        var shipments = await db.Shipments
+      .ForNotifications(now, NoticeDays, TimeSpan.FromMinutes(2))
+      .ToListAsync(ct);
 
-        if (shipment is null)
-            return;
+        foreach (var shipment in shipments)
+        {
+            shipment.LastNotifiedAt = now;
 
-        shipment.LastNotifiedAt = now;
+            if (shipment.TimeOfArrival.Date <= today)
+            {
+                shipment.IsCompleted = true;
+            }
+
+            var daysRemaining = (shipment.TimeOfArrival.Date - today).Days;
+
+            await hub.Clients.User(shipment.UserId.ToString())
+                .SendAsync(
+                    "ShipmentArrivingSoon",
+                    shipment.PurchaseOrderNumber,
+                    shipment.Vendor,
+                    shipment.TimeOfArrival,
+                    daysRemaining,
+                    ct);
+        }
 
         await db.SaveChangesAsync(ct);
-
-        var daysRemaining = (shipment.TimeOfArrival.Date - today).Days;
-
-        await hub.Clients.User(shipment.UserId.ToString())
-            .SendAsync(
-                "ShipmentArrivingSoon",
-                shipment.PurchaseOrderNumber,
-                shipment.Vendor,
-                shipment.TimeOfArrival,
-                daysRemaining,
-                ct);
     }
 }
