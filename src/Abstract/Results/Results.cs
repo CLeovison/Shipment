@@ -1,5 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using Shipment.Abstract.Results.Errors;
+using Shipment.Features.Auth.Register;
 
 namespace Shipment.Abstract.Results;
 
@@ -42,5 +43,6 @@ public class Result<T> : Result
 
     public static implicit operator Result<T>(T? value) => Create(value);
     public override string ToString() => IsSuccess ? $"Success: {Value}" : $"Failure: {Error.Code} - {Error.Description}";
+
 
 }
