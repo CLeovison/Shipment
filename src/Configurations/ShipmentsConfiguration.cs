@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using Shipment.Entities;
+using Shipment.Features.Shipments.Shared;
 
 namespace Shipment.Configurations;
 
@@ -41,6 +42,11 @@ public sealed class ShipmentConfiguration : IEntityTypeConfiguration<ShipmentDet
         builder.Property(x => x.IsCompleted)
             .HasDefaultValue(false);
 
+        builder.Property(x => x.Status)
+        .HasConversion<string>()
+        .HasMaxLength(50)
+        .HasDefaultValue(ShipmentStatus.Pending);
+
         builder.HasIndex(x => new
         {
             x.IsCompleted,
@@ -50,6 +56,7 @@ public sealed class ShipmentConfiguration : IEntityTypeConfiguration<ShipmentDet
 
         builder.HasOne(x => x.User)
             .WithMany(u => u.Shipments)
-            .HasForeignKey(x => x.UserId);
+            .HasForeignKey(x => x.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }
