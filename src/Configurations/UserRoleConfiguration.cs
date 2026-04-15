@@ -11,7 +11,6 @@ public sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
     {
         builder.ToTable("UserRole");
 
-
         builder.HasKey(x => new
         {
             x.RoleId,

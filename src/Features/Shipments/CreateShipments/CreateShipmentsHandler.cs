@@ -12,10 +12,8 @@ using Shipment.Hubs;
 
 namespace Shipment.Features.Shipments.CreateShipments;
 
-internal sealed class CreateShipmentHandler(
-    AppDbContext dbContext,
-    IHubContext<ShipmentNotificationHub, IShipmentClient> hub,
-    IHttpContextAccessor httpContext)
+
+internal sealed class CreateShipmentHandler(AppDbContext dbContext, IHubContext<ShipmentNotificationHub, IShipmentClient> hub, IHttpContextAccessor httpContext)
 {
     public async Task<Result<CreateShipmentResponse>> CreateShipmentAsync(ShipmentDetails shipment, CancellationToken ct)
     {
@@ -39,11 +37,11 @@ internal sealed class CreateShipmentHandler(
         if (duplicateExists)
             return Result.Failure<CreateShipmentResponse>(Error.AlreadyExists(nameof(Shipment)));
 
+
         dbContext.Shipments.Add(shipment);
         await dbContext.SaveChangesAsync(ct);
 
-        var userName = httpContext.HttpContext?.User?
-            .FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
+        var userName = httpContext.HttpContext?.User?.FindFirst(ClaimTypes.Name)?.Value ?? "Unknown";
 
         var response = shipment.ToResponse(userName);
 

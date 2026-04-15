@@ -51,6 +51,6 @@ public sealed class GetUserByIdEndpoint : IEndpoint
             {
                 return Results.Problem($"Unexpected error: {ex.Message}", statusCode: 500);
             }
-        });
+        }).RequireAuthorization();
     }
 }
