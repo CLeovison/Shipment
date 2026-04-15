@@ -66,10 +66,7 @@ public sealed class CreateShipmentEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/shipments/create", async (
-            [FromBody] CreateShipmentRequest request,
-            CreateShipmentHandler handler,
-            CancellationToken ct) =>
+        app.MapPost("/api/v1/shipments/create", async ([FromBody] CreateShipmentRequest request, CreateShipmentHandler handler, CancellationToken ct) =>
         {
             try
             {

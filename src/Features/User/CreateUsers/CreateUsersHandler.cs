@@ -48,10 +48,7 @@ public class CreateUserEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/users/create", async (
-            [FromBody] CreateUserRequest request,
-            CreateUserHandler handler,
-            CancellationToken ct) =>
+        app.MapPost("/api/v1/users/create", async ([FromBody] CreateUserRequest request, CreateUserHandler handler, CancellationToken ct) =>
         {
             try
             {

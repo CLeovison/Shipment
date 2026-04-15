@@ -60,10 +60,7 @@ public sealed class GetAllUserEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
-        app.MapGet("/api/v1/users", async (
-            GetAllUserHandler handler,
-            [AsParameters] UserFilter filter,
-            CancellationToken ct,
+        app.MapGet("/api/v1/users", async (GetAllUserHandler handler, [AsParameters] UserFilter filter, CancellationToken ct,
             int pageNumber = 1,
             int pageSize = 10,
             string? searchTerm = null) =>

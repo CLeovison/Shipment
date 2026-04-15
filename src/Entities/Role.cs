@@ -1,3 +1,5 @@
+using Shipment.Entities;
+
 namespace Shipmennt.Entities;
 
 
@@ -10,4 +12,5 @@ public class Role
     // provide a human-readable explanation of what a particular role represents, what its purpose is, 
     // and which permissions it is intended to grant
     public string Description { get; set; } = string.Empty;
+    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }

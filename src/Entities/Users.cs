@@ -12,5 +12,5 @@ public class Users : AuditableEntity
     public DateTime Birthday { get; set; }
 
     public ICollection<ShipmentDetails> Shipments { get; set; } = new List<ShipmentDetails>();
-    public ICollection<UserRole> Roles { get; set; } = new List<UserRole>();
+    public ICollection<UserRole> UserRoles { get; set; } = new List<UserRole>();
 }

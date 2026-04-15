@@ -18,6 +18,17 @@ public sealed class UserRoleConfiguration : IEntityTypeConfiguration<UserRole>
             x.UserId
         });
 
-        builder.HasOne<Users>().WithMany().HasForeignKey(x => x.UserId)
+        builder.HasOne(x => x.User)
+        .WithMany(x => x.UserRoles)
+        .HasForeignKey(x => x.UserId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasOne(x => x.Roles)
+        .WithMany(r => r.UserRoles)
+        .HasForeignKey(x => x.RoleId)
+        .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasIndex(x => x.UserId);
+        builder.HasIndex(x => x.RoleId);
     }
 }
