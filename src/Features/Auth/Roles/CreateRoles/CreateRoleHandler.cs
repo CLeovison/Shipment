@@ -7,7 +7,7 @@ using Shipment.Database;
 
 namespace Shipment.Features.Auth.Roles;
 
-internal sealed class RoleHandler(AppDbContext dbContext)
+internal sealed class CreateRoleHandler(AppDbContext dbContext)
 {
     public async Task<Result<RoleResponse>> RoleAsync(RoleRequest request, CancellationToken ct)
     {
@@ -36,7 +36,7 @@ public sealed class RoleEndpoint : IEndpoint
 {
     public void Endpoint(IEndpointRouteBuilder app)
     {
-        app.MapPost("/api/v1/auth/role/create", async (RoleHandler handler, RoleRequest request, CancellationToken ct) =>
+        app.MapPost("/api/v1/auth/role/create", async (CreateRoleHandler handler, RoleRequest request, CancellationToken ct) =>
         {
             var result = await handler.RoleAsync(request, ct);
 

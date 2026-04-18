@@ -6,7 +6,7 @@ public record class RoleRequest(string RoleName, string Description);
 public record class RoleResponse(int RoleId, string RoleName, string Description);
 
 
-public static class RoleMapper
+public static class CreateRoleMapper
 {
     public static Role ToRoleRequest(this RoleRequest request)
     {
