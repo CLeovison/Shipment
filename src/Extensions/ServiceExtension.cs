@@ -13,6 +13,7 @@ using Shipment.Features.Auth.Logout;
 using Shipment.Features.Auth.RefreshToken;
 using Shipment.Features.Auth.RevokeRefreshToken;
 using Shipment.Features.Auth.Roles;
+using Shipment.Features.Auth.Roles.DeleteRoles;
 using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.Shipments.DeleteShipments;
 using Shipment.Features.Shipments.GetAllShipments;
@@ -121,6 +122,7 @@ public static class ServiceExtensions
         services.AddScoped<LogoutHandler>();
         services.AddScoped<RevokeRefreshToken>();
         services.AddScoped<CreateRoleHandler>();
+        services.AddScoped<DeleteRolesHandler>();
         services.AddHttpContextAccessor();
         return services;
     }

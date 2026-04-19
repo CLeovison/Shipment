@@ -51,6 +51,6 @@ public sealed class RoleEndpoint : IEndpoint
             }
 
             return Results.Created($"/api/v1/auth/role/{result.Value.RoleName}", result.Value);
-        });
+        }).RequireAuthorization();
     }
 }

@@ -1,4 +1,3 @@
-using Microsoft.EntityFrameworkCore;
 using Shipmennt.Entities;
 using Shipment.Abstract;
 using Shipment.Abstract.Results;
@@ -36,12 +35,18 @@ public sealed class DeleteRolesEndpoint : IEndpoint
         {
             try
             {
+                var result = await handler.DeleteRolesAsync(id, ct);
 
+                if (result.IsFailure)
+                {
+                    return Results.NotFound();
+                }
+                return Results.NoContent();
             }
             catch (Exception ex)
             {
-
+                return Results.Problem(detail: ex.Message, statusCode: 500, title: "An error occurred while deleting the role");
             }
-        });
+        }).RequireAuthorization();
     }
 }

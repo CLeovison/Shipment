@@ -8,6 +8,7 @@ using Shipment.Abstract.Results.Errors;
 using Shipment.Database;
 using Shipment.Entities;
 using Shipment.Extensions;
+using Shipment.Features.Shipments.Shared;
 using Shipment.Hubs;
 
 namespace Shipment.Features.Shipments.CreateShipments;
@@ -35,7 +36,10 @@ internal sealed class CreateShipmentHandler(AppDbContext dbContext, IHubContext<
             .AnyAsync(x => x.PurchaseOrderNumber == shipment.PurchaseOrderNumber, ct);
 
         if (duplicateExists)
+        {
             return Result.Failure<CreateShipmentResponse>(Error.AlreadyExists(nameof(Shipment)));
+        }
+
 
 
         dbContext.Shipments.Add(shipment);
