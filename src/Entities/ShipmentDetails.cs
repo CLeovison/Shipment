@@ -13,7 +13,7 @@ public class ShipmentDetails : AuditableEntity
     public DateTime? NotifyStartAt { get; set; }
     public DateTime? LastNotifiedAt { get; set; }
     public bool IsCompleted { get; set; } = false;
-    public ShipmentStatus Status { get; set; } = ShipmentStatus.Pending;
+    public ShipmentStatus Status { get; set; }
 
     public int UserId { get; set; }
 

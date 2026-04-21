@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Shipment.Database;
 using Shipment.Entities;
+using Shipment.Features.Shipments.Shared;
 using Shipment.Features.Shipments.UploadShipments;
 
 namespace Shipment.Background;
@@ -126,9 +127,18 @@ public sealed class ShipmentsUploadWorker(
                 Vendor = dto.Vendor,
                 TimeOfArrival = arrival,
                 NotifyStartAt = arrival.AddDays(-14),
+                Status = ShipmentStatus.Received,
                 UserId = dto.UserId
             };
         }).ToList();
+
+        foreach (var entity in entities)
+        {
+            if (entity.PurchaseOrderNumber == null || entity.Vendor == null || entity.TimeOfArrival == default)
+            {
+                entity.Status = ShipmentStatus.Pending;
+            }
+        }
 
         try
         {

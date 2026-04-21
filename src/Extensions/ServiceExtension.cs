@@ -14,6 +14,7 @@ using Shipment.Features.Auth.RefreshToken;
 using Shipment.Features.Auth.RevokeRefreshToken;
 using Shipment.Features.Auth.Roles;
 using Shipment.Features.Auth.Roles.DeleteRoles;
+using Shipment.Features.Auth.Roles.GetRoles;
 using Shipment.Features.Shipments.CreateShipments;
 using Shipment.Features.Shipments.DeleteShipments;
 using Shipment.Features.Shipments.GetAllShipments;
@@ -123,6 +124,7 @@ public static class ServiceExtensions
         services.AddScoped<RevokeRefreshToken>();
         services.AddScoped<CreateRoleHandler>();
         services.AddScoped<DeleteRolesHandler>();
+        services.AddScoped<GetRolesHandler>();
         services.AddHttpContextAccessor();
         return services;
     }
