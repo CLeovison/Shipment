@@ -134,7 +134,7 @@ public sealed class ShipmentsUploadWorker(
 
         foreach (var entity in entities)
         {
-            if (entity.PurchaseOrderNumber == null || entity.Vendor == null || entity.TimeOfArrival == default)
+            if (entity.PurchaseOrderNumber == "" || entity.Vendor == "" || entity.TimeOfArrival == default)
             {
                 entity.Status = ShipmentStatus.Pending;
             }
@@ -162,6 +162,7 @@ public sealed class ShipmentsUploadWorker(
         using var scope = serviceScope.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+        int counter = 0;
         foreach (var dto in batch)
         {
             try
@@ -177,9 +178,20 @@ public sealed class ShipmentsUploadWorker(
                     UserId = dto.UserId
                 };
 
+                if (entity.PurchaseOrderNumber == "" || entity.Vendor == "" || entity.TimeOfArrival == default)
+                {
+                    entity.Status = ShipmentStatus.Pending;
+                }
+
                 context.Shipments.Add(entity);
-                await context.SaveChangesAsync(ct);
                 succeeded.Add(dto);
+                counter++;
+
+                if (++counter % 50 == 0)
+                {
+                    await context.SaveChangesAsync(ct);
+                    context.ChangeTracker.Clear();
+                }
             }
             catch
             {
@@ -187,6 +199,11 @@ public sealed class ShipmentsUploadWorker(
             }
         }
 
+        if (counter % 50 == 0)
+        {
+            await context.SaveChangesAsync(ct);
+            context.ChangeTracker.Clear();
+        }
         return (succeeded, failed);
     }
 

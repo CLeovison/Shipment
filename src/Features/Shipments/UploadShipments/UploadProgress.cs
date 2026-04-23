@@ -1,14 +1,5 @@
 namespace Shipment.Features.Shipments.UploadShipments;
 
-public enum UploadStatus
-{
-    Pending,
-    Processing,
-    Completed,
-    CompletedWithErrors,
-    Failed
-}
-
 public sealed class UploadProgress
 {
     public Guid UploadId { get; set; }
