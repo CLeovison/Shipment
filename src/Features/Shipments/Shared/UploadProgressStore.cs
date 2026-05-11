@@ -1,6 +1,6 @@
 using System.Collections.Concurrent;
 
-namespace Shipment.Features.Shipments.UploadShipments;
+namespace Shipment.Features.Shipments.Shared;
 
 public sealed class UploadProgressStore
 {

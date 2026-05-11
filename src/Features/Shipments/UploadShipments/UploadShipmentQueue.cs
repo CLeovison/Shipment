@@ -1,5 +1,4 @@
 using System.Threading.Channels;
-using Shipment.Entities;
 
 namespace Shipment.Features.Shipments.UploadShipments;
 

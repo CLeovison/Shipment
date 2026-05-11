@@ -3,6 +3,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Database;
 using Shipment.Extensions;
+using Shipment.Features.Shipments.Shared;
 using Shipment.Features.Shipments.UploadShipments;
 using Shipment.Hubs;
 

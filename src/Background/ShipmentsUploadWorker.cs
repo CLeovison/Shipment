@@ -1,8 +1,10 @@
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Shipment.Database;
 using Shipment.Entities;
 using Shipment.Features.Shipments.Shared;
 using Shipment.Features.Shipments.UploadShipments;
+using Shipment.Hubs;
 
 namespace Shipment.Background;
 
@@ -10,7 +12,8 @@ public sealed class ShipmentsUploadWorker(
     ILogger<ShipmentsUploadWorker> logger,
     IServiceScopeFactory serviceScope,
     UploadShipmentQueue queue,
-    UploadProgressStore progressStore)
+    UploadProgressStore progressStore,
+    IHubContext<ShipmentNotificationHub, IShipmentClient> hubContext)
     : BackgroundService
 {
     private const int BatchSize = 1000;
@@ -79,6 +82,9 @@ public sealed class ShipmentsUploadWorker(
 
     private static DateTime EnsureTime(DateTime date)
     {
+        if (date == default)
+            return DateTime.UtcNow;
+
         if (date.TimeOfDay == TimeSpan.Zero)
             return date.Date.AddHours(8);
 
@@ -92,7 +98,7 @@ public sealed class ShipmentsUploadWorker(
             try
             {
                 var (succeeded, failed) = await SaveBatch(batch, ct);
-                UpdateProgress(succeeded, failed);
+                await UpdateProgress(succeeded, failed);
                 return;
             }
             catch (Exception ex)
@@ -101,7 +107,7 @@ public sealed class ShipmentsUploadWorker(
 
                 if (attempt == MaxRetries)
                 {
-                    UpdateProgress([], batch);
+                    await UpdateProgress([], batch);
                     return;
                 }
 
@@ -162,7 +168,7 @@ public sealed class ShipmentsUploadWorker(
         using var scope = serviceScope.CreateScope();
         var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-        int counter = 0;
+
         foreach (var dto in batch)
         {
             try
@@ -178,20 +184,15 @@ public sealed class ShipmentsUploadWorker(
                     UserId = dto.UserId
                 };
 
-                if (entity.PurchaseOrderNumber == "" || entity.Vendor == "" || entity.TimeOfArrival == default)
+                if(entity.PurchaseOrderNumber == "" || entity.Vendor == "" || entity.TimeOfArrival == default)
                 {
                     entity.Status = ShipmentStatus.Pending;
                 }
 
                 context.Shipments.Add(entity);
+                
+                await context.SaveChangesAsync(ct);
                 succeeded.Add(dto);
-                counter++;
-
-                if (++counter % 50 == 0)
-                {
-                    await context.SaveChangesAsync(ct);
-                    context.ChangeTracker.Clear();
-                }
             }
             catch
             {
@@ -199,16 +200,13 @@ public sealed class ShipmentsUploadWorker(
             }
         }
 
-        if (counter % 50 == 0)
-        {
-            await context.SaveChangesAsync(ct);
-            context.ChangeTracker.Clear();
-        }
         return (succeeded, failed);
     }
 
-    private void UpdateProgress(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)
+    private async Task UpdateProgress(List<ShipmentImportDto> succeeded, List<ShipmentImportDto> failed)
     {
+        var notifiedUploads = new HashSet<Guid>();
+
         foreach (var item in succeeded)
         {
             var progress = progressStore.GetId(item.UploadId);
@@ -222,6 +220,8 @@ public sealed class ShipmentsUploadWorker(
                 progress.IsCompleted = true;
                 progress.CompletedAt = DateTime.UtcNow;
             }
+
+            notifiedUploads.Add(item.UploadId);
         }
 
         foreach (var item in failed)
@@ -237,6 +237,35 @@ public sealed class ShipmentsUploadWorker(
                 progress.IsCompleted = true;
                 progress.CompletedAt = DateTime.UtcNow;
             }
+
+            notifiedUploads.Add(item.UploadId);
+        }
+
+        // Push real-time updates via SignalR
+        foreach (var uploadId in notifiedUploads)
+        {
+            var progress = progressStore.GetId(uploadId);
+            if (progress == null) continue;
+
+            var userId = succeeded.FirstOrDefault(x => x.UploadId == uploadId)?.UserId
+                      ?? failed.FirstOrDefault(x => x.UploadId == uploadId)?.UserId;
+
+            if (userId == null) continue;
+
+            var response = new UploadProgressResponse
+            {
+                UploadId = progress.UploadId,
+                Total = progress.Total,
+                Processed = progress.Processed,
+                Succeeded = progress.Succeeded,
+                Failed = progress.Failed,
+                IsCompleted = progress.IsCompleted,
+                StartedAt = progress.StartedAt,
+                CompletedAt = progress.CompletedAt
+            };
+
+            await hubContext.Clients.User(userId.ToString()!)
+                .UploadProgressUpdated(response);
         }
     }
 }
