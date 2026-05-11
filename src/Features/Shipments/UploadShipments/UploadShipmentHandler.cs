@@ -2,6 +2,8 @@ using System.Globalization;
 using CsvHelper;
 using Shipment.Abstract;
 using System.Security.Claims;
+using Shipment.Database;
+using Shipment.Entities;
 using Shipment.Features.Shipments.Shared;
 
 namespace Shipment.Features.Shipments.UploadShipments;
@@ -10,7 +12,8 @@ internal sealed class UploadShipmentHandler(
     UploadShipmentQueue queue,
     IHttpContextAccessor httpContext,
     UploadProgressStore progressStore,
-    ILogger<UploadShipmentHandler> logger) // Added logger
+    IServiceScopeFactory serviceScopeFactory,
+    ILogger<UploadShipmentHandler> logger)
 {
     public async Task<Guid> UploadShipmentAsync(IFormFile file, CancellationToken ct)
     {
@@ -20,6 +23,20 @@ internal sealed class UploadShipmentHandler(
 
         var uploadId = Guid.NewGuid();
         progressStore.Create(uploadId);
+
+        // Create the database log entry
+        using (var scope = serviceScopeFactory.CreateScope())
+        {
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+            context.UploadLogs.Add(new UploadLog
+            {
+                Id = uploadId,
+                UserId = userId,
+                FileName = file.FileName,
+                StartedAt = DateTime.UtcNow
+            });
+            await context.SaveChangesAsync(ct);
+        }
 
         // Copy file to memory so we can return immediately
         var memoryStream = new MemoryStream();

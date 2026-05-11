@@ -31,18 +31,15 @@ public sealed class ShipmentsUploadWorker(
         {
             while (!stoppingToken.IsCancellationRequested)
             {
-                if (await queue.Reader.WaitToReadAsync(stoppingToken.CanBeCanceled ? stoppingToken : CancellationToken.None))
+                while (queue.Reader.TryRead(out var dto))
                 {
-                    while (queue.Reader.TryRead(out var dto))
-                    {
-                        buffer.Add(Normalize(dto));
+                    buffer.Add(Normalize(dto));
 
-                        if (buffer.Count >= BatchSize)
-                        {
-                            await ProcessBatch([.. buffer], stoppingToken);
-                            buffer.Clear();
-                            lastFlush = DateTime.UtcNow;
-                        }
+                    if (buffer.Count >= BatchSize)
+                    {
+                        await ProcessBatch([.. buffer], stoppingToken);
+                        buffer.Clear();
+                        lastFlush = DateTime.UtcNow;
                     }
                 }
 
@@ -126,6 +123,9 @@ public sealed class ShipmentsUploadWorker(
         var entities = batch.Select(dto =>
         {
             var arrival = EnsureTime(dto.TimeOfArrival);
+            var isPending = string.IsNullOrWhiteSpace(dto.PurchaseOrderNumber)
+                         || string.IsNullOrWhiteSpace(dto.Vendor)
+                         || dto.TimeOfArrival == default;
 
             return new ShipmentDetails
             {
@@ -133,18 +133,10 @@ public sealed class ShipmentsUploadWorker(
                 Vendor = dto.Vendor,
                 TimeOfArrival = arrival,
                 NotifyStartAt = arrival.AddDays(-14),
-                Status = ShipmentStatus.Received,
+                Status = isPending ? ShipmentStatus.Pending : ShipmentStatus.Received,
                 UserId = dto.UserId
             };
         }).ToList();
-
-        foreach (var entity in entities)
-        {
-            if (entity.PurchaseOrderNumber == "" || entity.Vendor == "" || entity.TimeOfArrival == default)
-            {
-                entity.Status = ShipmentStatus.Pending;
-            }
-        }
 
         try
         {
@@ -175,19 +167,19 @@ public sealed class ShipmentsUploadWorker(
             {
                 var arrival = EnsureTime(dto.TimeOfArrival);
 
+                var isPending = string.IsNullOrWhiteSpace(dto.PurchaseOrderNumber)
+                             || string.IsNullOrWhiteSpace(dto.Vendor)
+                             || dto.TimeOfArrival == default;
+
                 var entity = new ShipmentDetails
                 {
                     PurchaseOrderNumber = dto.PurchaseOrderNumber,
                     Vendor = dto.Vendor,
                     TimeOfArrival = arrival,
                     NotifyStartAt = arrival.AddDays(-14),
+                    Status = isPending ? ShipmentStatus.Pending : ShipmentStatus.Received,
                     UserId = dto.UserId
                 };
-
-                if(entity.PurchaseOrderNumber == "" || entity.Vendor == "" || entity.TimeOfArrival == default)
-                {
-                    entity.Status = ShipmentStatus.Pending;
-                }
 
                 context.Shipments.Add(entity);
                 
@@ -247,6 +239,21 @@ public sealed class ShipmentsUploadWorker(
             var progress = progressStore.GetId(uploadId);
             if (progress == null) continue;
 
+            logger.LogInformation(
+                "Upload {UploadId} progress — Total: {Total}, Processed: {Processed}, Succeeded: {Succeeded}, Failed: {Failed}",
+                uploadId, progress.Total, progress.Processed, progress.Succeeded, progress.Failed);
+
+            if (progress.IsCompleted)
+            {
+                logger.LogInformation(
+                    "Upload {UploadId} completed — Total: {Total}, Succeeded: {Succeeded}, Failed: {Failed}, Duration: {Duration}",
+                    uploadId, progress.Total, progress.Succeeded, progress.Failed,
+                    progress.CompletedAt!.Value - progress.StartedAt);
+            }
+
+            // Persist progress to database
+            await PersistUploadLog(uploadId, progress);
+
             var userId = succeeded.FirstOrDefault(x => x.UploadId == uploadId)?.UserId
                       ?? failed.FirstOrDefault(x => x.UploadId == uploadId)?.UserId;
 
@@ -266,6 +273,31 @@ public sealed class ShipmentsUploadWorker(
 
             await hubContext.Clients.User(userId.ToString()!)
                 .UploadProgressUpdated(response);
+        }
+    }
+
+    private async Task PersistUploadLog(Guid uploadId, UploadProgress progress)
+    {
+        try
+        {
+            using var scope = serviceScope.CreateScope();
+            var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+            var log = await context.UploadLogs.FindAsync(uploadId);
+            if (log == null) return;
+
+            log.Total = progress.Total;
+            log.Processed = progress.Processed;
+            log.Succeeded = progress.Succeeded;
+            log.Failed = progress.Failed;
+            log.IsCompleted = progress.IsCompleted;
+            log.CompletedAt = progress.CompletedAt;
+
+            await context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            logger.LogWarning(ex, "Failed to persist upload log for {UploadId}", uploadId);
         }
     }
 }
